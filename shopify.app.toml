@@ -2,7 +2,7 @@
 
 client_id = "1e230754459dc2aec3bc6f7d355989bd"
 name = "discount-remix-akash"
-application_url = "https://afford-champagne-park-bracelet.trycloudflare.com"
+application_url = "https://creek-toilet-completely-ukraine.trycloudflare.com"
 embedded = true
 handle = "discount-remix-akash"
 
@@ -21,11 +21,23 @@ api_version = "2025-07"
   topics = [ "app/scopes_update" ]
   uri = "/webhooks/app/scopes_update"
 
+  [[webhooks.subscriptions]]
+  topics = [ "discounts/create" ]
+  uri = "/webhooks/discounts/created"
+
+  [[webhooks.subscriptions]]
+  topics = [ "discounts/update" ]
+  uri = "/webhooks/discounts/updated"
+
+  [[webhooks.subscriptions]]
+  topics = [ "discounts/delete" ]
+  uri = "/webhooks/discounts/deleted"
+
 [access_scopes]
 scopes = "write_products,read_discounts,read_metaobjects,write_metaobjects"
 
 [auth]
-redirect_urls = ["https://afford-champagne-park-bracelet.trycloudflare.com/auth/callback", "https://afford-champagne-park-bracelet.trycloudflare.com/auth/shopify/callback", "https://afford-champagne-park-bracelet.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://creek-toilet-completely-ukraine.trycloudflare.com/auth/callback", "https://creek-toilet-completely-ukraine.trycloudflare.com/auth/shopify/callback", "https://creek-toilet-completely-ukraine.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false
