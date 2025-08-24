@@ -31,3 +31,8 @@ When you do that it will show changes and ask wether to confirm or not.
 
 ## 3. Create sample Pages for your app
 Create your app pages in **app/** folder. You need to give file names like `*app.***.tsx*` and link those pages in app.tsx using <*Navigate*>
+
+## 4. Add Tables If needed
+You might need create some tables in your app, that can be done by adding schemas in ``prisma/schema.prisma``
+Then you need to run ``npx prisma db push`` ``npx prisma generate``
+And to check to the updates schemas you can run  ``npx prisma studio``

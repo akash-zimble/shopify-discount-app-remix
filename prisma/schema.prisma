@@ -30,3 +30,16 @@ model Session {
   collaborator  Boolean?  @default(false)
   emailVerified Boolean?  @default(false)
 }
+
+model DiscountMetafieldRule {
+  id                  Int      @id @default(autoincrement())
+  discountId          String   // Shopify discount ID
+  discountType        String   // "code" or "automatic"  
+  discountTitle       String   // Display name
+  metafieldNamespace  String   // e.g., "discount_manager"
+  metafieldKey        String   // e.g., "active_discounts"
+  metafieldValue      String   // JSON string of discount data
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
