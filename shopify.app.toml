@@ -1,0 +1,32 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "1e230754459dc2aec3bc6f7d355989bd"
+name = "discount-remix-akash"
+application_url = "https://travesti-industry-kid-dentists.trycloudflare.com"
+embedded = true
+handle = "discount-remix-akash"
+
+[build]
+include_config_on_deploy = true
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2025-07"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app/scopes_update"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products"
+
+[auth]
+redirect_urls = ["https://travesti-industry-kid-dentists.trycloudflare.com/auth/callback", "https://travesti-industry-kid-dentists.trycloudflare.com/auth/shopify/callback", "https://travesti-industry-kid-dentists.trycloudflare.com/api/auth/callback"]
+
+[pos]
+embedded = false
