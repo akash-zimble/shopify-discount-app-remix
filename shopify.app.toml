@@ -2,7 +2,7 @@
 
 client_id = "1e230754459dc2aec3bc6f7d355989bd"
 name = "discount-remix-akash"
-application_url = "https://cook-ruled-neural-majority.trycloudflare.com"
+application_url = "https://afford-champagne-park-bracelet.trycloudflare.com"
 embedded = true
 handle = "discount-remix-akash"
 
@@ -25,7 +25,7 @@ api_version = "2025-07"
 scopes = "write_products,read_discounts,read_metaobjects,write_metaobjects"
 
 [auth]
-redirect_urls = ["https://cook-ruled-neural-majority.trycloudflare.com/auth/callback", "https://cook-ruled-neural-majority.trycloudflare.com/auth/shopify/callback", "https://cook-ruled-neural-majority.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://afford-champagne-park-bracelet.trycloudflare.com/auth/callback", "https://afford-champagne-park-bracelet.trycloudflare.com/auth/shopify/callback", "https://afford-champagne-park-bracelet.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false

@@ -22,4 +22,12 @@ Then it will give your shopify store link open it and install app
 In this step you will be changing the scopes of your app. You will be giving the store scopes which are needed for app.
 
 Change shopify.app.toml ``[access_scopes]``
-After changing these scopes it wont reflect, unless you rel
+After changing these scopes it wont reflect, unless you create new version of your app to do that you need to do
+``shopify app deploy``
+
+When you do that it will show changes and ask wether to confirm or not.
+
+
+
+## 3. Create sample Pages for your app
+Create your app pages in **app/** folder. You need to give file names like `*app.***.tsx*` and link those pages in app.tsx using <*Navigate*>
