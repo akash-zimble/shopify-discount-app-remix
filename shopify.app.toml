@@ -2,7 +2,7 @@
 
 client_id = "1e230754459dc2aec3bc6f7d355989bd"
 name = "discount-remix-akash"
-application_url = "https://travesti-industry-kid-dentists.trycloudflare.com"
+application_url = "https://cook-ruled-neural-majority.trycloudflare.com"
 embedded = true
 handle = "discount-remix-akash"
 
@@ -22,11 +22,10 @@ api_version = "2025-07"
   uri = "/webhooks/app/scopes_update"
 
 [access_scopes]
-# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products"
+scopes = "write_products,read_discounts,read_metaobjects,write_metaobjects"
 
 [auth]
-redirect_urls = ["https://travesti-industry-kid-dentists.trycloudflare.com/auth/callback", "https://travesti-industry-kid-dentists.trycloudflare.com/auth/shopify/callback", "https://travesti-industry-kid-dentists.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://cook-ruled-neural-majority.trycloudflare.com/auth/callback", "https://cook-ruled-neural-majority.trycloudflare.com/auth/shopify/callback", "https://cook-ruled-neural-majority.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false
