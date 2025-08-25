@@ -1,52 +1,56 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
-import prisma from "../db.server";
+import { WebhookDiscountProcessor } from "../services/webhookDiscountProcessor.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { topic, shop, payload } = await authenticate.webhook(request);
+  const { topic, shop, payload, session } = await authenticate.webhook(request);
 
   console.log(`Received ${topic} webhook for ${shop}`);
-  console.log("UPDATE PAYLOAD:", JSON.stringify(payload, null, 2));
 
   try {
-    const discount = payload;
-    const discountId = discount.admin_graphql_api_id ?
-    discount.admin_graphql_api_id.split('/').pop() :
-    discount.id;
-    
-    if (!discountId) {
-      console.log("❌ No discount ID found in update payload");
+    if (!session?.accessToken) {
+      console.log("❌ No valid session");
       return new Response("OK", { status: 200 });
     }
 
-    // Update existing rule or create if it doesn't exist
-    await prisma.discountMetafieldRule.upsert({
-      where: {
-        id: -1, // This will never match, forcing create behavior for upsert
-      },
-      update: {},
-      create: {
-        discountId: String(discountId),
-        discountType: discount.code ? "code" : "automatic",
-        discountTitle: discount.title || discount.code || "Updated Discount",
-        metafieldNamespace: "discount_manager",
-        metafieldKey: "active_discounts",
-        metafieldValue: JSON.stringify({
-          id: discountId,
-          title: discount.title,
-          code: discount.code,
-          status: discount.status,
-          updated_at: new Date().toISOString()
-        }),
-        isActive: true
-      }
+    const adminClient = createWebhookAdminWrapper(session);
+    const processor = new WebhookDiscountProcessor(adminClient);
+
+    const result = await processor.processDiscountUpdate(payload);
+
+    console.log(`🎉 Successfully processed discount update:`, {
+      id: result.id,
+      title: result.title,
+      type: result.discountType,
+      code: result.code || "N/A (Automatic)",
+      value: result.value.displayValue
     });
 
-    console.log(`✅ Updated metafield rule for discount: ${discount.title || discountId}`);
-    
   } catch (error) {
-    console.error("❌ Error updating discount metafield rule:", error);
+    console.error("❌ Error processing discount update webhook:", error);
   }
 
   return new Response("OK", { status: 200 });
 };
+
+function createWebhookAdminWrapper(session: any) {
+  return {
+    graphql: async (query: string, options: any = {}) => {
+      const url = `https://${session.shop}/admin/api/2025-07/graphql.json`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': session.accessToken
+        },
+        body: JSON.stringify({
+          query: query,
+          variables: options.variables || {}
+        })
+      });
+
+      return response;
+    }
+  } as any;
+}

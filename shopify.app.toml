@@ -2,7 +2,7 @@
 
 client_id = "1e230754459dc2aec3bc6f7d355989bd"
 name = "discount-remix-akash"
-application_url = "https://creek-toilet-completely-ukraine.trycloudflare.com"
+application_url = "https://yrs-appreciation-angela-may.trycloudflare.com"
 embedded = true
 handle = "discount-remix-akash"
 
@@ -37,7 +37,7 @@ api_version = "2025-07"
 scopes = "write_products,read_discounts,read_metaobjects,write_metaobjects"
 
 [auth]
-redirect_urls = ["https://creek-toilet-completely-ukraine.trycloudflare.com/auth/callback", "https://creek-toilet-completely-ukraine.trycloudflare.com/auth/shopify/callback", "https://creek-toilet-completely-ukraine.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://yrs-appreciation-angela-may.trycloudflare.com/auth/callback", "https://yrs-appreciation-angela-may.trycloudflare.com/auth/shopify/callback", "https://yrs-appreciation-angela-may.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false
