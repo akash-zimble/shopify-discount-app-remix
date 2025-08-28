@@ -104,3 +104,137 @@
 {"logger":"webhook.discounts.created","ts":"2025-08-28T08:08:39.222Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1272244011186"}
 {"logger":"webhook.discounts.created","ts":"2025-08-28T08:08:39.423Z","message":"Updated product metafields","updated":3,"attempted":3}
 {"logger":"webhook.discounts.created","ts":"2025-08-28T08:08:39.424Z","message":"Processed discount creation","id":"1272244011186","title":"15","type":"automatic","code":"N/A (Automatic)","value":"15%"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:10:38.879Z","message":"Received webhook","topic":"DISCOUNTS_CREATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:10:41.073Z","message":"Missing discount id in extracted data (create) - applied fallback","originalExtractedId":"","nodeIdTail":"1272244011186","fallbackNumericId":"1272244011186","finalId":"1272244011186"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:10:41.080Z","message":"Updated existing metafield rule on create","discountId":"1272244011186"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:10:41.080Z","message":"Upserted metafield rule","discountType":"automatic","title":"15","discountId":"1272244011186"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:10:41.622Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:10:41.623Z","message":"Processing discount","title":"15","discountId":"gid://shopify/DiscountAutomaticNode/1272244011186"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:10:42.115Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1272244011186","count":3}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:10:43.082Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1272244011186"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:10:44.341Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1272244011186"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:10:45.591Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1272244011186"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:10:45.792Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:10:45.792Z","message":"Processed discount creation","id":"1272244011186","title":"15","type":"automatic","code":"N/A (Automatic)","value":"15%"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:11:49.330Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:11:51.324Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1272244011186","fallbackNumericId":"1272244011186","finalId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:11:51.335Z","message":"Updated metafield rule","discountType":"automatic","title":"15","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:11:51.845Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:11:51.845Z","message":"Processing discount","title":"15","discountId":"gid://shopify/DiscountAutomaticNode/1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:11:52.354Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1272244011186","count":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:11:53.336Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:11:54.646Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:11:56.011Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:11:56.214Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:11:56.215Z","message":"Processed discount update","id":"1272244011186","title":"15","type":"automatic","code":"N/A (Automatic)","value":"14.000000000000002%"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:11:56.360Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:11:58.199Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1272244011186","fallbackNumericId":"1272244011186","finalId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:11:58.206Z","message":"Updated metafield rule","discountType":"automatic","title":"15","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:11:58.778Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:11:58.778Z","message":"Processing discount","title":"15","discountId":"gid://shopify/DiscountAutomaticNode/1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:11:59.267Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1272244011186","count":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:12:00.251Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:12:01.499Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:12:02.758Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:12:02.959Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:12:02.959Z","message":"Processed discount update","id":"1272244011186","title":"15","type":"automatic","code":"N/A (Automatic)","value":"14.000000000000002%"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:13:03.271Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:13:05.385Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1272244011186","fallbackNumericId":"1272244011186","finalId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:13:05.399Z","message":"Updated metafield rule","discountType":"automatic","title":"15","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:13:05.914Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:13:05.914Z","message":"Processing discount","title":"15","discountId":"gid://shopify/DiscountAutomaticNode/1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:13:06.398Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1272244011186","count":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:13:07.424Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:13:08.570Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:13:09.765Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:13:09.967Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:13:09.967Z","message":"Processed discount update","id":"1272244011186","title":"15","type":"automatic","code":"N/A (Automatic)","value":"14.000000000000002%"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:18.190Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:20.271Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1272244011186","fallbackNumericId":"1272244011186","finalId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:20.277Z","message":"Updated metafield rule","discountType":"automatic","title":"15","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:20.770Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:20.770Z","message":"Processing discount","title":"15","discountId":"gid://shopify/DiscountAutomaticNode/1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:21.244Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1272244011186","count":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:22.234Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:23.427Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:24.587Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:24.783Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:24.787Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:24.787Z","message":"Processed discount update","id":"1272244011186","title":"15","type":"automatic","code":"N/A (Automatic)","value":"15%"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:26.665Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1272244011186","fallbackNumericId":"1272244011186","finalId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:26.678Z","message":"Updated metafield rule","discountType":"automatic","title":"15","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:27.189Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:27.189Z","message":"Processing discount","title":"15","discountId":"gid://shopify/DiscountAutomaticNode/1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:27.679Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1272244011186","count":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:28.645Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:29.792Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:30.923Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:31.124Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:14:31.125Z","message":"Processed discount update","id":"1272244011186","title":"15","type":"automatic","code":"N/A (Automatic)","value":"15%"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:10.147Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:12.217Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1272244011186","fallbackNumericId":"1272244011186","finalId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:12.225Z","message":"Updated metafield rule","discountType":"automatic","title":"15","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:12.739Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:12.739Z","message":"Processing discount","title":"15","discountId":"gid://shopify/DiscountAutomaticNode/1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:13.232Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1272244011186","count":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:14.155Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:15.266Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:16.396Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:16.597Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:16.598Z","message":"Processed discount update","id":"1272244011186","title":"15","type":"automatic","code":"N/A (Automatic)","value":"15%"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:31.305Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:33.365Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1272244011186","fallbackNumericId":"1272244011186","finalId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:33.372Z","message":"Updated metafield rule","discountType":"automatic","title":"15","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:33.911Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:33.911Z","message":"Processing discount","title":"15","discountId":"gid://shopify/DiscountAutomaticNode/1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:34.396Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1272244011186","count":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:35.315Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:36.546Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:37.749Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:37.951Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:15:37.951Z","message":"Processed discount update","id":"1272244011186","title":"15","type":"automatic","code":"N/A (Automatic)","value":"15%"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:15:45.760Z","message":"Received webhook","topic":"DISCOUNTS_CREATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:15:47.932Z","message":"Missing discount id in extracted data (create) - applied fallback","originalExtractedId":"","nodeIdTail":"1272244011186","fallbackNumericId":"1272244011186","finalId":"1272244011186"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:15:47.945Z","message":"Updated existing metafield rule on create","discountId":"1272244011186"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:15:47.945Z","message":"Upserted metafield rule","discountType":"automatic","title":"15","discountId":"1272244011186"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:15:48.486Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:15:48.486Z","message":"Processing discount","title":"15","discountId":"gid://shopify/DiscountAutomaticNode/1272244011186"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:15:48.941Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1272244011186","count":3}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:15:49.926Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1272244011186"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:15:51.153Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1272244011186"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:15:52.438Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1272244011186"}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:15:52.639Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"webhook.discounts.created","ts":"2025-08-28T08:15:52.640Z","message":"Processed discount creation","id":"1272244011186","title":"15","type":"automatic","code":"N/A (Automatic)","value":"15%"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:17:37.907Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:17:40.006Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1272244011186","fallbackNumericId":"1272244011186","finalId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:17:40.014Z","message":"Updated metafield rule","discountType":"automatic","title":"15","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:17:40.543Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:17:40.543Z","message":"Processing discount","title":"15","discountId":"gid://shopify/DiscountAutomaticNode/1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:17:41.076Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1272244011186","count":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:17:42.127Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:17:43.377Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:17:44.544Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:17:44.744Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:17:44.745Z","message":"Processed discount update","id":"1272244011186","title":"15","type":"automatic","code":"N/A (Automatic)","value":"15%"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:20:16.659Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:20:18.789Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1272244011186","fallbackNumericId":"1272244011186","finalId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:20:18.802Z","message":"Updated metafield rule","discountType":"automatic","title":"15","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:20:19.276Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:20:19.276Z","message":"Processing discount","title":"15","discountId":"gid://shopify/DiscountAutomaticNode/1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:20:19.754Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1272244011186","count":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:20:20.744Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:20:21.896Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:20:23.079Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:20:23.280Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:20:23.280Z","message":"Processed discount update","id":"1272244011186","title":"15","type":"automatic","code":"N/A (Automatic)","value":"15%"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:22:44.605Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:22:46.831Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1272244011186","fallbackNumericId":"1272244011186","finalId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:22:46.844Z","message":"Updated metafield rule","discountType":"automatic","title":"15","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:22:47.426Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:22:47.426Z","message":"Processing discount","title":"15","discountId":"gid://shopify/DiscountAutomaticNode/1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:22:47.913Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1272244011186","count":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:22:48.899Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:22:50.108Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:22:51.247Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1272244011186"}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:22:51.449Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-08-28T08:22:51.449Z","message":"Processed discount update","id":"1272244011186","title":"15","type":"automatic","code":"N/A (Automatic)","value":"15%"}

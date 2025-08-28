@@ -9,6 +9,13 @@ export interface ExtractedDiscountData {
     endsAt?: string;
     usageLimit?: number;
     discountType: "code" | "automatic";
+    summary?: string;
+    customerEligibility?: "all" | "segment" | "specific";
+    posExcluded?: boolean;
+    canCombine?: boolean;
+    minimumRequirement?: { type: "amount" | "quantity" | "none"; value?: number; currencyCode?: string };
+    appliesTo?: "one_time" | "subscriptions" | "both";
+    details?: string[];
   }
   
   export class DiscountDataExtractor {
@@ -43,6 +50,16 @@ export interface ExtractedDiscountData {
         valueType = "fixed_amount";
         valueAmount = `${value.amount?.amount || 0} ${value.amount?.currencyCode || ""}`;
       }
+
+      const details: string[] = [];
+      if (valueType === "percentage" && valueAmount) details.push(`${valueAmount} off`);
+      if (discountDetails.startsAt) details.push("Active from today");
+      const customerEligibility: "all" | "segment" | "specific" = "all";
+      const posExcluded = undefined as unknown as boolean | undefined;
+      const canCombine = undefined as unknown as boolean | undefined;
+      const minimumRequirement: { type: "amount" | "quantity" | "none"; value?: number; currencyCode?: string } = { type: "none" };
+      const appliesTo: "one_time" | "subscriptions" | "both" = "one_time";
+      details.unshift("All customers");
       if (process.env.NODE_ENV !== 'production') {
         try { console.info(JSON.stringify({ logger: 'extractor', ts: new Date().toISOString(), message: 'Extractor output', type: valueType, displayValue: valueAmount })); } catch {}
       }
@@ -60,7 +77,14 @@ export interface ExtractedDiscountData {
         startsAt: discountDetails.startsAt,
         endsAt: discountDetails.endsAt,
         usageLimit: discountDetails.usageLimit,
-        discountType: discountType
+        discountType: discountType,
+        summary: discountDetails.summary || "",
+        customerEligibility,
+        posExcluded,
+        canCombine,
+        minimumRequirement,
+        appliesTo,
+        details
       };
     }
     
@@ -78,7 +102,12 @@ export interface ExtractedDiscountData {
         startsAt: payload.created_at,
         endsAt: "",
         usageLimit: 0,
-        discountType: "automatic" // Assume automatic from webhook
+        discountType: "automatic", // Assume automatic from webhook
+        summary: payload.summary || "",
+        customerEligibility: "all",
+        appliesTo: "one_time",
+        minimumRequirement: { type: "none" },
+        details: []
       };
     }
   }

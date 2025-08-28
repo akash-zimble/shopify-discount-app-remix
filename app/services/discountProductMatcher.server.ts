@@ -9,6 +9,13 @@ export interface ProductMetafieldData {
   status: string;
   startsAt?: string;
   endsAt?: string;
+  summary?: string;
+  customerEligibility?: "all" | "segment" | "specific";
+  posExcluded?: boolean;
+  canCombine?: boolean;
+  minimumRequirement?: { type: "amount" | "quantity" | "none"; value?: number; currencyCode?: string };
+  appliesTo?: "one_time" | "subscriptions" | "both";
+  details?: string[];
 }
 
 export class DiscountProductMatcher {
