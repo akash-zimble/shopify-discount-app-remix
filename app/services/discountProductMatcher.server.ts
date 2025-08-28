@@ -1,4 +1,5 @@
 import type { AdminApiContext } from "@shopify/shopify-app-remix/server";
+import type { Logger } from "../utils/logger.server";
 
 export interface ProductMetafieldData {
   id: string;
@@ -12,23 +13,26 @@ export interface ProductMetafieldData {
 
 export class DiscountProductMatcher {
   private admin: AdminApiContext;
+  private logger: Logger;
 
-  constructor(admin: AdminApiContext) {
+  constructor(admin: AdminApiContext, logger: Logger) {
     this.admin = admin;
+    this.logger = logger;
   }
 
   // Main method to get all products affected by a discount
   async getAffectedProducts(discountId: string): Promise<string[]> {
     try {
+      const nodeId = this.toDiscountNodeId(discountId);
       // First, get the discount details to understand what it targets
-      const discountDetails = await this.getDiscountDetails(discountId);
+      const discountDetails = await this.getDiscountDetails(nodeId);
 
       if (!discountDetails) {
-        console.log(`Discount ${discountId} not found`);
+        this.logger.warn("Discount not found", { discountId });
         return [];
       }
 
-      console.log(`Processing discount: ${discountDetails.title}`);
+      this.logger.info("Processing discount", { title: discountDetails.title, discountId });
 
       // Check what the discount targets
       if (discountDetails.appliesToAllProducts) {
@@ -43,142 +47,193 @@ export class DiscountProductMatcher {
         return await this.getProductsFromCollections(discountDetails.collectionIds);
       }
 
-      console.log(`No targeting found for discount ${discountId}`);
+      this.logger.info("No targeting found for discount", { discountId });
       return [];
 
     } catch (error) {
-      console.error("Error finding affected products:", error);
+      this.logger.error(error as Error, { scope: "getAffectedProducts", discountId });
       return [];
     }
+  }
+
+  private toDiscountNodeId(inputId: string): string {
+    if (!inputId) return inputId;
+    if (inputId.startsWith('gid://')) return inputId;
+    const parts = inputId.split('/');
+    const tail = parts[parts.length - 1];
+    // Prefer Automatic and Code nodes as they are actual concrete types
+    return `gid://shopify/DiscountAutomaticNode/${tail}`;
   }
 
   // Get discount details and targeting information
   // Get discount details and targeting information
   private async getDiscountDetails(discountId: string) {
+    const id = this.toDiscountNodeId(discountId);
     const response = await this.admin.graphql(`
-    #graphql
-    query getDiscountDetails($id: ID!) {
-      discountNode(id: $id) {
-        id
-        discount {
-          ... on DiscountCodeBasic {
-            title
-            status
-            summary
-            customerGets {
-              items {
-                ... on DiscountProducts {
-                  products(first: 250) {
-                    edges {
-                      node {
-                        id
+      #graphql
+      query getDiscountDetails($id: ID!) {
+        discountNode(id: $id) {
+          id
+          discount {
+            ... on DiscountCodeBasic {
+              title
+              status
+              summary
+              customerGets {
+                value {
+                  ... on DiscountAmount {
+                    __typename
+                    amount {
+                      amount
+                      currencyCode
+                    }
+                  }
+                  ... on DiscountPercentage {
+                    __typename
+                    percentage
+                  }
+                }
+                items {
+                  ... on DiscountProducts {
+                    products(first: 250) {
+                      edges {
+                        node {
+                          id
+                        }
                       }
                     }
                   }
-                }
-                ... on DiscountCollections {
-                  collections(first: 250) {
-                    edges {
-                      node {
-                        id
+                  ... on DiscountCollections {
+                    collections(first: 250) {
+                      edges {
+                        node {
+                          id
+                        }
                       }
                     }
                   }
-                }
-                ... on AllDiscountItems {
-                  allItems
+                  ... on AllDiscountItems {
+                    allItems
+                  }
                 }
               }
             }
-          }
-          ... on DiscountAutomaticBasic {
-            title
-            status
-            summary
-            customerGets {
-              items {
-                ... on DiscountProducts {
-                  products(first: 250) {
-                    edges {
-                      node {
-                        id
+            ... on DiscountAutomaticBasic {
+              title
+              status
+              summary
+              customerGets {
+                value {
+                  ... on DiscountAmount {
+                    __typename
+                    amount {
+                      amount
+                      currencyCode
+                    }
+                  }
+                  ... on DiscountPercentage {
+                    __typename
+                    percentage
+                  }
+                }
+                items {
+                  ... on DiscountProducts {
+                    products(first: 250) {
+                      edges {
+                        node {
+                          id
+                        }
                       }
                     }
                   }
-                }
-                ... on DiscountCollections {
-                  collections(first: 250) {
-                    edges {
-                      node {
-                        id
+                  ... on DiscountCollections {
+                    collections(first: 250) {
+                      edges {
+                        node {
+                          id
+                        }
                       }
                     }
                   }
-                }
-                ... on AllDiscountItems {
-                  allItems
+                  ... on AllDiscountItems {
+                    allItems
+                  }
                 }
               }
             }
-          }
-          ... on DiscountAutomaticBxgy {
-            title
-            status
-            summary
-            customerGets {
-              items {
-                ... on DiscountProducts {
-                  products(first: 250) {
-                    edges {
-                      node {
-                        id
+            ... on DiscountAutomaticBxgy {
+              title
+              status
+              summary
+              customerGets {
+                value {
+                  ... on DiscountAmount {
+                    __typename
+                    amount {
+                      amount
+                      currencyCode
+                    }
+                  }
+                  ... on DiscountPercentage {
+                    __typename
+                    percentage
+                  }
+                }
+                items {
+                  ... on DiscountProducts {
+                    products(first: 250) {
+                      edges {
+                        node {
+                          id
+                        }
                       }
                     }
                   }
-                }
-                ... on DiscountCollections {
-                  collections(first: 250) {
-                    edges {
-                      node {
-                        id
+                  ... on DiscountCollections {
+                    collections(first: 250) {
+                      edges {
+                        node {
+                          id
+                        }
                       }
                     }
                   }
-                }
-                ... on AllDiscountItems {
-                  allItems
+                  ... on AllDiscountItems {
+                    allItems
+                  }
                 }
               }
             }
           }
         }
       }
-    }
-  `, {
-      variables: { id: discountId }
+    `, {
+      variables: { id }
     });
 
     const data = await response.json();
 
     // 🔍 DEBUG: Log the complete response
-    console.log("🔍 RAW DISCOUNT DATA:", JSON.stringify(data, null, 2));
+    this.logger.debug("RAW DISCOUNT DATA", { data });
 
     const discountNode = data.data?.discountNode;
 
     if (!discountNode) {
-      console.log("❌ No discount node found");
+      this.logger.warn("No discount node found", { discountId });
       return null;
     }
 
     const discount = discountNode.discount;
-    console.log("🔍 DISCOUNT TYPE:", discount.__typename);
-    console.log("🔍 CUSTOMER GETS:", JSON.stringify(discount.customerGets, null, 2));
-
-    // ✅ NEW CODE (handles object structure):
-    const items = discount.customerGets?.items;
-    console.log("🔍 ITEMS STRUCTURE:", JSON.stringify(items, null, 2));
-
-    // Parse the items object directly (not as array)
+    this.logger.debug("DISCOUNT TYPE", { type: discount.__typename });
+    this.logger.debug("CUSTOMER GETS", { customerGets: discount.customerGets });
+    
+    const customerGets = discount.customerGets;
+    const value = customerGets?.value;
+    
+    this.logger.debug("VALUE DATA", { value });
+    
+    // Parse the items and value
+    const items = customerGets?.items;
     let appliesToAll = false;
     let productIds: string[] = [];
     let collectionIds: string[] = [];
@@ -196,7 +251,7 @@ export class DiscountProductMatcher {
       }
     }
 
-    console.log(`🎯 PARSED RESULTS: appliesToAll=${appliesToAll}, products=${productIds.length}, collections=${collectionIds.length}`);
+    this.logger.info("Parsed discount targeting", { appliesToAll, productCount: productIds.length, collectionCount: collectionIds.length });
 
     return {
       id: discountNode.id,
@@ -204,9 +259,10 @@ export class DiscountProductMatcher {
       status: discount.status,
       appliesToAllProducts: appliesToAll,
       productIds: productIds,
-      collectionIds: collectionIds
-    };
-
+      collectionIds: collectionIds,
+      value: value, 
+      customerGets: customerGets
+    }
   }
 
 
@@ -230,7 +286,9 @@ export class DiscountProductMatcher {
     `);
 
     const data = await response.json();
-    return data.data?.products?.edges?.map((edge: any) => edge.node.id) || [];
+    const ids = data.data?.products?.edges?.map((edge: any) => edge.node.id) || [];
+    this.logger.debug("Fetched all product ids", { count: ids.length });
+    return ids;
   }
 
   // Get all products in specified collections
@@ -267,6 +325,9 @@ export class DiscountProductMatcher {
   // Update product metafield with discount information
   async updateProductMetafield(productId: string, discountData: ProductMetafieldData) {
     try {
+      if (!discountData.id) {
+        this.logger.error("Attempting to update metafield with empty discount id", { productId, discountData });
+      }
       // First, get existing metafield value
       const existingMetafield = await this.getProductMetafield(productId);
       let discountArray: ProductMetafieldData[] = [];
@@ -318,15 +379,15 @@ export class DiscountProductMatcher {
       const result = await response.json();
 
       if (result.data?.metafieldsSet?.userErrors?.length > 0) {
-        console.error("Metafield update errors:", result.data.metafieldsSet.userErrors);
+        this.logger.error("Metafield update errors", { userErrors: result.data.metafieldsSet.userErrors, productId });
         return false;
       }
 
-      console.log(`✅ Updated metafield for product ${productId} with discount ${discountData.id}`);
+      this.logger.info("Updated product metafield", { productId, discountId: discountData.id });
       return true;
 
     } catch (error) {
-      console.error(`Error updating metafield for product ${productId}:`, error);
+      this.logger.error(error as Error, { scope: "updateProductMetafield", productId, discountId: discountData.id });
       return false;
     }
   }
@@ -386,15 +447,15 @@ export class DiscountProductMatcher {
       const result = await response.json();
 
       if (result.data?.metafieldsSet?.userErrors?.length > 0) {
-        console.error("Metafield removal errors:", result.data.metafieldsSet.userErrors);
+        this.logger.error("Metafield removal errors", { userErrors: result.data.metafieldsSet.userErrors, productId, discountId });
         return false;
       }
 
-      console.log(`✅ Removed discount ${discountId} from product ${productId} metafield`);
+      this.logger.info("Removed discount from product metafield", { productId, discountId });
       return true;
 
     } catch (error) {
-      console.error(`Error removing discount from product ${productId}:`, error);
+      this.logger.error(error as Error, { scope: "removeDiscountFromProduct", productId, discountId });
       return false;
     }
   }
@@ -415,6 +476,8 @@ export class DiscountProductMatcher {
     });
 
     const data = await response.json();
-    return data.data?.product?.metafield?.value || null;
+    const value = data.data?.product?.metafield?.value || null;
+    this.logger.debug("Fetched product metafield", { productId, hasValue: Boolean(value) });
+    return value;
   }
 }

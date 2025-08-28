@@ -1,12 +1,15 @@
 import prisma from "../db.server";
 import { DiscountProductMatcher } from "./discountProductMatcher.server";
 import { DiscountDataExtractor } from "./discountDataExtractor.server";
+import type { Logger } from "../utils/logger.server";
 
 export class WebhookDiscountProcessor {
   private adminClient: any;
+  private logger: Logger;
   
-  constructor(adminClient: any) {
+  constructor(adminClient: any, logger: Logger) {
     this.adminClient = adminClient;
+    this.logger = logger;
   }
 
   async processDiscountCreate(payload: any) {
@@ -16,28 +19,63 @@ export class WebhookDiscountProcessor {
       throw new Error("No discount ID found in payload");
     }
 
-    // Fetch full discount details
-    const fullDiscountDetails = await this.fetchFullDiscountDetails(payload.admin_graphql_api_id);
+    const existingRule = await prisma.discountMetafieldRule.findFirst({
+      where: { discountId: String(discountId), isActive: true }
+    });
     
-    // Extract structured data
+    const fullDiscountDetails = await this.fetchFullDiscountDetails(payload.admin_graphql_api_id || `gid://shopify/DiscountNode/${discountId}`);
+    this.logger.debug("Full discount details (create)", { fullDiscountDetails });
+    if (fullDiscountDetails?.discount?.customerGets?.value) {
+      const v = fullDiscountDetails.discount.customerGets.value;
+      this.logger.debug("Discount value (create)", { typename: v.__typename, value: v });
+    } else {
+      this.logger.warn("No discount value found in full details (create)", { discountId });
+    }
+    
     const extractedData = fullDiscountDetails 
-      ? DiscountDataExtractor.extractFromFullDetails(fullDiscountDetails)
+      ? DiscountDataExtractor.extractFromFullDetails(fullDiscountDetails.discount)
       : DiscountDataExtractor.extractFromWebhookPayload(payload);
 
-    // Store in database
-    await prisma.discountMetafieldRule.create({
-      data: {
-        discountId: String(discountId),
-        discountType: extractedData.discountType,
-        discountTitle: extractedData.title,
-        metafieldNamespace: "discount_manager",
-        metafieldKey: "active_discounts",
-        metafieldValue: JSON.stringify(extractedData),
-        isActive: true
-      }
-    });
+    // Ensure we have a stable discount id to store in product metafields
+    const originalExtractedId = extractedData.id;
+    const fallbackNumericId = String(discountId || '').trim();
+    const nodeIdTail = fullDiscountDetails?.nodeId ? String(fullDiscountDetails.nodeId).split('/').pop() : '';
+    if (!originalExtractedId || originalExtractedId.length === 0) {
+      extractedData.id = nodeIdTail || fallbackNumericId;
+      this.logger.warn("Missing discount id in extracted data (create) - applied fallback", { originalExtractedId, nodeIdTail, fallbackNumericId, finalId: extractedData.id });
+    }
+    if (!extractedData.id) {
+      this.logger.error("Discount id is still empty after fallback (create)", { discountId, nodeId: fullDiscountDetails?.nodeId });
+    }
+    this.logger.debug("Extracted discount data (create)", { id: extractedData.id, type: extractedData.type, displayValue: extractedData.value?.displayValue, rawValue: extractedData.value });
 
-    console.log(`✅ Created metafield rule for ${extractedData.discountType} discount: ${extractedData.title}`);
+    // Store or update in database
+    if (existingRule) {
+      await prisma.discountMetafieldRule.updateMany({
+        where: { discountId: String(discountId) },
+        data: {
+          discountTitle: extractedData.title,
+          metafieldValue: JSON.stringify(extractedData),
+          isActive: true
+        }
+      });
+      this.logger.info("Updated existing metafield rule on create", { discountId });
+    } else {
+      await prisma.discountMetafieldRule.create({
+        data: {
+          discountId: String(discountId),
+          discountType: extractedData.discountType,
+          discountTitle: extractedData.title,
+          metafieldNamespace: "discount_manager",
+          metafieldKey: "active_discounts",
+          metafieldValue: JSON.stringify(extractedData),
+          isActive: true
+        }
+      });
+      this.logger.info("Created metafield rule on create", { discountId });
+    }
+
+    this.logger.info("Upserted metafield rule", { discountType: extractedData.discountType, title: extractedData.title, discountId });
 
     // Update product metafields
     await this.updateAffectedProductMetafields(payload.admin_graphql_api_id || `gid://shopify/DiscountNode/${discountId}`, extractedData);
@@ -53,12 +91,31 @@ export class WebhookDiscountProcessor {
     }
 
     // Fetch full discount details
-    const fullDiscountDetails = await this.fetchFullDiscountDetails(payload.admin_graphql_api_id);
+    const fullDiscountDetails = await this.fetchFullDiscountDetails(payload.admin_graphql_api_id || `gid://shopify/DiscountNode/${discountId}`);
+    this.logger.debug("Full discount details (update)", { fullDiscountDetails });
+    if (fullDiscountDetails?.discount?.customerGets?.value) {
+      const v = fullDiscountDetails.discount.customerGets.value;
+      this.logger.debug("Discount value (update)", { typename: v.__typename, value: v });
+    } else {
+      this.logger.warn("No discount value found in full details (update)", { discountId });
+    }
     
     // Extract structured data
     const extractedData = fullDiscountDetails 
-      ? DiscountDataExtractor.extractFromFullDetails(fullDiscountDetails)
+      ? DiscountDataExtractor.extractFromFullDetails(fullDiscountDetails.discount)
       : DiscountDataExtractor.extractFromWebhookPayload(payload);
+    // Ensure we have a stable discount id to store in product metafields
+    const originalExtractedIdU = extractedData.id;
+    const fallbackNumericIdU = String(discountId || '').trim();
+    const nodeIdTailU = fullDiscountDetails?.nodeId ? String(fullDiscountDetails.nodeId).split('/').pop() : '';
+    if (!originalExtractedIdU || originalExtractedIdU.length === 0) {
+      extractedData.id = nodeIdTailU || fallbackNumericIdU;
+      this.logger.warn("Missing discount id in extracted data (update) - applied fallback", { originalExtractedId: originalExtractedIdU, nodeIdTail: nodeIdTailU, fallbackNumericId: fallbackNumericIdU, finalId: extractedData.id });
+    }
+    if (!extractedData.id) {
+      this.logger.error("Discount id is still empty after fallback (update)", { discountId, nodeId: fullDiscountDetails?.nodeId });
+    }
+    this.logger.debug("Extracted discount data (update)", { id: extractedData.id, type: extractedData.type, displayValue: extractedData.value?.displayValue, rawValue: extractedData.value });
 
     // Update database
     const updated = await prisma.discountMetafieldRule.updateMany({
@@ -85,7 +142,7 @@ export class WebhookDiscountProcessor {
       });
     }
 
-    console.log(`✅ Updated metafield rule for ${extractedData.discountType} discount: ${extractedData.title}`);
+    this.logger.info("Updated metafield rule", { discountType: extractedData.discountType, title: extractedData.title, discountId });
 
     // Update product metafields
     await this.updateAffectedProductMetafields(payload.admin_graphql_api_id || `gid://shopify/DiscountNode/${discountId}`, extractedData);
@@ -123,132 +180,153 @@ export class WebhookDiscountProcessor {
 
   private async fetchFullDiscountDetails(discountGraphqlId: string) {
     try {
-      const response = await this.adminClient.graphql(`
-        #graphql
-        query getFullDiscountDetails($id: ID!) {
-          discountNode(id: $id) {
-            id
-            discount {
+      const candidates: string[] = this.buildDiscountIdCandidates(discountGraphqlId);
+      // 1) Try generic node(id: ...) with the provided/admin id
+      for (const id of candidates) {
+        const nodeResp = await this.adminClient.graphql(`
+          #graphql
+          query getDiscountNode($id: ID!) {
+            node(id: $id) {
+              __typename
               ... on DiscountCodeBasic {
-                id
                 title
+                summary
                 status
                 startsAt
                 endsAt
-                usageLimit
-                codes(first: 1) {
-                  edges {
-                    node {
-                      code
-                    }
-                  }
-                }
+                codes(first: 1) { edges { node { code } } }
                 customerGets {
                   value {
-                    ... on DiscountAmount {
-                      __typename
-                      amount {
-                        amount
-                        currencyCode
-                      }
-                    }
-                    ... on DiscountPercentage {
-                      __typename
-                      percentage
-                    }
+                    ... on DiscountAmount { __typename amount { amount currencyCode } }
+                    ... on DiscountPercentage { __typename percentage }
                   }
                   items {
-                    ... on DiscountProducts {
-                      products(first: 250) {
-                        edges {
-                          node {
-                            id
-                          }
-                        }
-                      }
-                    }
-                    ... on DiscountCollections {
-                      collections(first: 250) {
-                        edges {
-                          node {
-                            id
-                          }
-                        }
-                      }
-                    }
-                    ... on AllDiscountItems {
-                      allItems
-                    }
+                    ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
+                    ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
+                    ... on AllDiscountItems { allItems }
                   }
                 }
               }
               ... on DiscountAutomaticBasic {
-                id
                 title
+                summary
                 status
                 startsAt
                 endsAt
-                usageLimit
                 customerGets {
                   value {
-                    ... on DiscountAmount {
-                      __typename
-                      amount {
-                        amount
-                        currencyCode
-                      }
-                    }
-                    ... on DiscountPercentage {
-                      __typename
-                      percentage
-                    }
+                    ... on DiscountAmount { __typename amount { amount currencyCode } }
+                    ... on DiscountPercentage { __typename percentage }
                   }
                   items {
-                    ... on DiscountProducts {
-                      products(first: 250) {
-                        edges {
-                          node {
-                            id
-                          }
-                        }
-                      }
+                    ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
+                    ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
+                    ... on AllDiscountItems { allItems }
+                  }
+                }
+              }
+            }
+          }
+        `, { variables: { id } });
+        const nodeData = await nodeResp.json();
+        const typename = nodeData.data?.node?.__typename;
+        if (typename === 'DiscountCodeBasic' || typename === 'DiscountAutomaticBasic') {
+          this.logger.debug("Fetched discount via node()", { id, typename });
+          try { this.logger.debug("Full discount payload", { discount: nodeData.data.node }); } catch {}
+          return { nodeId: nodeData.data.node.id, discount: nodeData.data.node };
+        }
+      }
+      // 2) Fallback: try discountNode(id: DiscountNodeGid)
+      for (const id of candidates) {
+        // transform known subtype ids to DiscountNode ids if they look like GIDs
+        const dnId = id.includes('/DiscountAutomatic') || id.includes('/DiscountCode') ? id.replace(/Discount\w+Node\//, 'DiscountNode/') : id;
+        const response = await this.adminClient.graphql(`
+          #graphql
+          query getFullDiscountDetails($id: ID!) {
+            discountNode(id: $id) {
+              id
+              discount {
+                ... on DiscountCodeBasic {
+                  title
+                  summary
+                  status
+                  startsAt
+                  endsAt
+                  codes(first: 1) { edges { node { code } } }
+                  customerGets {
+                    value {
+                      ... on DiscountAmount { __typename amount { amount currencyCode } }
+                      ... on DiscountPercentage { __typename percentage }
                     }
-                    ... on DiscountCollections {
-                      collections(first: 250) {
-                        edges {
-                          node {
-                            id
-                          }
-                        }
-                      }
+                    items {
+                      ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
+                      ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
+                      ... on AllDiscountItems { allItems }
                     }
-                    ... on AllDiscountItems {
-                      allItems
+                  }
+                }
+                ... on DiscountAutomaticBasic {
+                  title
+                  summary
+                  status
+                  startsAt
+                  endsAt
+                  customerGets {
+                    value {
+                      ... on DiscountAmount { __typename amount { amount currencyCode } }
+                      ... on DiscountPercentage { __typename percentage }
+                    }
+                    items {
+                      ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
+                      ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
+                      ... on AllDiscountItems { allItems }
                     }
                   }
                 }
               }
             }
           }
+        `, { variables: { id: dnId } });
+        const data = await response.json();
+        if (data.errors) {
+          this.logger.warn("GraphQL errors from discountNode", { id: dnId, errors: data.errors });
         }
-      `, {
-        variables: { id: discountGraphqlId }
-      });
-
-      const data = await response.json();
-      return data.data?.discountNode?.discount || null;
+        if (data.data?.discountNode?.discount) {
+          this.logger.debug("Fetched full discount details via discountNode", { id: dnId, typename: data.data.discountNode.discount.__typename });
+          try { this.logger.debug("Full discount payload", { discount: data.data.discountNode.discount }); } catch {}
+          return { nodeId: data.data.discountNode.id, discount: data.data.discountNode.discount };
+        }
+      }
+      this.logger.warn("Failed to fetch full discount details with candidates", { candidates });
+      return null;
     } catch (error) {
-      console.error("Error fetching full discount details:", error);
+      this.logger.error(error as Error, { scope: "fetchFullDiscountDetails", discountGraphqlId });
       return null;
     }
   }
 
+  private buildDiscountIdCandidates(inputId: string): string[] {
+    if (!inputId) return [];
+    const parts = inputId.split('/');
+    const tail = parts[parts.length - 1];
+    const coreId = tail || inputId;
+    const candidates = [
+      `gid://shopify/DiscountAutomaticNode/${coreId}`,
+      `gid://shopify/DiscountCodeNode/${coreId}`,
+      `gid://shopify/DiscountNode/${coreId}`
+    ];
+    // Ensure uniqueness and include the original input as last resort
+    const set = new Set<string>(candidates);
+    set.add(inputId);
+    return Array.from(set);
+  }
+
   private async updateAffectedProductMetafields(discountGraphqlId: string, extractedData: any) {
     try {
-      const matcher = new DiscountProductMatcher(this.adminClient);
+      const matcher = new DiscountProductMatcher(this.adminClient, this.logger);
       const affectedProducts = await matcher.getAffectedProducts(discountGraphqlId);
       
-      console.log(`📦 Found ${affectedProducts.length} products affected by discount`);
+      this.logger.info("Found affected products", { discountGraphqlId, count: affectedProducts.length });
 
       let updateCount = 0;
       const maxProducts = Math.min(affectedProducts.length, 10);
@@ -259,13 +337,13 @@ export class WebhookDiscountProcessor {
           if (success) updateCount++;
           await new Promise(resolve => setTimeout(resolve, 200));
         } catch (error) {
-          console.error(`Error updating product ${affectedProducts[i]}:`, error);
+          this.logger.error(error as Error, { scope: "updateAffectedProductMetafields", productId: affectedProducts[i], discountId: extractedData.id });
         }
       }
 
-      console.log(`✅ Updated metafields on ${updateCount}/${maxProducts} products`);
+      this.logger.info("Updated product metafields", { updated: updateCount, attempted: maxProducts });
     } catch (error) {
-      console.error("Error updating product metafields:", error);
+      this.logger.error(error as Error, { scope: "updateAffectedProductMetafields.root" });
     }
   }
 
@@ -276,11 +354,11 @@ export class WebhookDiscountProcessor {
       try {
         storedDiscountDetails = JSON.parse(existingRule.metafieldValue);
       } catch (error) {
-        console.log("Could not parse stored discount details");
+        this.logger.warn("Could not parse stored discount details", { discountId, metafieldValue: existingRule.metafieldValue });
         return;
       }
 
-      const matcher = new DiscountProductMatcher(this.adminClient);
+      const matcher = new DiscountProductMatcher(this.adminClient, this.logger);
       
       // For simplicity, remove from all products that might have this discount
       // In a production app, you'd want to be more selective
@@ -295,13 +373,13 @@ export class WebhookDiscountProcessor {
           if (success) removalCount++;
           await new Promise(resolve => setTimeout(resolve, 200));
         } catch (error) {
-          console.error(`Error removing discount from product ${allProducts[i]}:`, error);
+          this.logger.error(error as Error, { scope: "removeFromProductMetafields", productId: allProducts[i], discountId });
         }
       }
 
-      console.log(`✅ Removed discount from ${removalCount}/${maxProducts} products`);
+      this.logger.info("Removed discount from products", { removed: removalCount, attempted: maxProducts });
     } catch (error) {
-      console.error("Error removing discount from products:", error);
+      this.logger.error(error as Error, { scope: "removeFromProductMetafields.root", discountId });
     }
   }
 }

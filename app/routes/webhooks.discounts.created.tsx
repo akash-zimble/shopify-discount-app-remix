@@ -1,24 +1,26 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { WebhookDiscountProcessor } from "../services/webhookDiscountProcessor.server";
+import { createLogger } from "../utils/logger.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
     const { topic, shop, payload, session } = await authenticate.webhook(request);
 
-    console.log(`Received ${topic} webhook for ${shop}`);
+    const logger = createLogger({ name: "webhook.discounts.created" });
+    logger.info("Received webhook", { topic, shop });
 
     try {
         if (!session?.accessToken) {
-            console.log("❌ No valid session - storing for background processing");
+            logger.warn("No valid session - storing for background processing", { shop });
             return new Response("OK", { status: 200 });
         }
 
         const adminClient = createWebhookAdminWrapper(session);
-        const processor = new WebhookDiscountProcessor(adminClient);
+        const processor = new WebhookDiscountProcessor(adminClient, logger);
 
         const result = await processor.processDiscountCreate(payload);
 
-        console.log(`🎉 Successfully processed discount creation:`, {
+        logger.info("Processed discount creation", {
             id: result.id,
             title: result.title,
             type: result.discountType,
@@ -27,7 +29,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         });
 
     } catch (error) {
-        console.error("❌ Error processing discount create webhook:", error);
+        const logger = createLogger({ name: "webhook.discounts.created" });
+        logger.error(error as Error, { scope: "action" });
     }
 
     return new Response("OK", { status: 200 });

@@ -19,6 +19,10 @@ export interface ExtractedDiscountData {
       // Extract value information
       const customerGets = discountDetails.customerGets || {};
       const value = customerGets.value || {};
+      // Debug breadcrumbs for value extraction
+      if (process.env.NODE_ENV !== 'production') {
+        try { console.info(JSON.stringify({ logger: 'extractor', ts: new Date().toISOString(), message: 'Extractor input', typename: value.__typename, value })); } catch {}
+      }
       
       // Determine discount type
       let discountType: "code" | "automatic" = "automatic";
@@ -32,10 +36,15 @@ export interface ExtractedDiscountData {
       // Extract value details based on type
       if (value.__typename === "DiscountPercentage") {
         valueType = "percentage";
-        valueAmount = `${value.percentage}%`;
+        const pct = typeof value.percentage === "number" ? value.percentage : Number(value.percentage);
+        const displayPct = pct > 1 ? pct : pct * 100;
+        valueAmount = `${displayPct}%`;
       } else if (value.__typename === "DiscountAmount") {
         valueType = "fixed_amount";
         valueAmount = `${value.amount?.amount || 0} ${value.amount?.currencyCode || ""}`;
+      }
+      if (process.env.NODE_ENV !== 'production') {
+        try { console.info(JSON.stringify({ logger: 'extractor', ts: new Date().toISOString(), message: 'Extractor output', type: valueType, displayValue: valueAmount })); } catch {}
       }
       
       return {
