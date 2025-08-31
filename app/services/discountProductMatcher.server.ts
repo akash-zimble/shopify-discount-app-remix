@@ -425,7 +425,7 @@ export class DiscountProductMatcher {
       // Update the metafield with the filtered array
       const response = await this.admin.graphql(`
         #graphql
-        mutation updateProductMetafield($productId: ID!, $metafields: [MetafieldsSetInput!]!) {
+        mutation updateProductMetafield($metafields: [MetafieldsSetInput!]!) {
           metafieldsSet(metafields: $metafields) {
             metafields {
               id

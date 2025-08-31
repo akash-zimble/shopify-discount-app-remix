@@ -49,7 +49,32 @@ export class WebhookDiscountProcessor {
     }
     this.logger.debug("Extracted discount data (create)", { id: extractedData.id, type: extractedData.type, displayValue: extractedData.value?.displayValue, rawValue: extractedData.value });
 
-    // Store or update in database
+
+    // NEW: Check status before proceeding - only add/update if ACTIVE
+    if (extractedData.status !== 'ACTIVE') {
+      this.logger.info("Discount created but not ACTIVE - skipping metafield updates", { discountId, status: extractedData.status });
+      // Optionally create/update DB with isActive: false if you want to track it
+      if (existingRule) {
+        await prisma.discountMetafieldRule.updateMany({
+          where: { discountId: String(discountId) },
+          data: { isActive: false }
+        });
+      } else {
+        await prisma.discountMetafieldRule.create({
+          data: {
+            discountId: String(discountId),
+            discountType: extractedData.discountType,
+            discountTitle: extractedData.title,
+            metafieldNamespace: "discount_manager",
+            metafieldKey: "active_discounts",
+            metafieldValue: JSON.stringify(extractedData),
+            isActive: false
+          }
+        });
+      }
+      return extractedData;
+    }
+
     if (existingRule) {
       await prisma.discountMetafieldRule.updateMany({
         where: { discountId: String(discountId) },
@@ -99,7 +124,7 @@ export class WebhookDiscountProcessor {
     } else {
       this.logger.warn("No discount value found in full details (update)", { discountId });
     }
-    
+
     // Extract structured data
     const extractedData = fullDiscountDetails 
       ? DiscountDataExtractor.extractFromFullDetails(fullDiscountDetails.discount)
@@ -116,8 +141,30 @@ export class WebhookDiscountProcessor {
       this.logger.error("Discount id is still empty after fallback (update)", { discountId, nodeId: fullDiscountDetails?.nodeId });
     }
     this.logger.debug("Extracted discount data (update)", { id: extractedData.id, type: extractedData.type, displayValue: extractedData.value?.displayValue, rawValue: extractedData.value });
+    
+    
+    // NEW: Fetch existing rule once for reuse
+    const existingRule = await prisma.discountMetafieldRule.findFirst({
+      where: { discountId: String(discountId) }
+    });
 
-    // Update database
+    // NEW: Check status - if not ACTIVE, treat as deletion (remove from metafields, set isActive: false)
+    if (extractedData.status !== 'ACTIVE') {
+      this.logger.info("Discount updated but not ACTIVE - treating as removal", { discountId, status: extractedData.status });
+      if (existingRule) {
+        await prisma.discountMetafieldRule.updateMany({
+          where: { discountId: String(discountId) },
+          data: {
+            metafieldValue: JSON.stringify(extractedData), // Optional: Update value for record-keeping
+            isActive: false
+          }
+        });
+        await this.removeFromProductMetafields(existingRule, String(discountId));
+      }
+      return extractedData;
+    }
+
+    // Normal update for ACTIVE discounts
     const updated = await prisma.discountMetafieldRule.updateMany({
       where: { discountId: String(discountId) },
       data: {
@@ -168,7 +215,7 @@ export class WebhookDiscountProcessor {
       data: { isActive: false }
     });
 
-    console.log(`✅ Deactivated metafield rule for deleted discount: ${discountId}`);
+    this.logger.info(`✅ Deactivated metafield rule for deleted discount: ${discountId}`);
 
     // Remove from product metafields
     if (existingRule) {
@@ -355,28 +402,30 @@ export class WebhookDiscountProcessor {
         storedDiscountDetails = JSON.parse(existingRule.metafieldValue);
       } catch (error) {
         this.logger.warn("Could not parse stored discount details", { discountId, metafieldValue: existingRule.metafieldValue });
-        return;
+        // Proceed anyway, as we can still remove using discountId
       }
 
       const matcher = new DiscountProductMatcher(this.adminClient, this.logger);
       
-      // For simplicity, remove from all products that might have this discount
-      // In a production app, you'd want to be more selective
-      const allProducts = await matcher.getAllProductIds();
+      // Get only affected products instead of all (more efficient)
+      const affectedProducts = await matcher.getAffectedProducts(discountId);
+      // If getAffectedProducts fails or returns empty (e.g., expired discount has no targeting), fall back to all
+      const productsToProcess = affectedProducts.length > 0 ? affectedProducts : await matcher.getAllProductIds();
       
       let removalCount = 0;
-      const maxProducts = Math.min(allProducts.length, 20);
+      // Limit to 20 for rate limiting, but in production, use a queue or remove limit with proper throttling
+      const maxProducts = Math.min(productsToProcess.length, 20);
       
       for (let i = 0; i < maxProducts; i++) {
         try {
-          const success = await matcher.removeDiscountFromProduct(allProducts[i], String(discountId));
+          const success = await matcher.removeDiscountFromProduct(productsToProcess[i], String(discountId));
           if (success) removalCount++;
           await new Promise(resolve => setTimeout(resolve, 200));
         } catch (error) {
-          this.logger.error(error as Error, { scope: "removeFromProductMetafields", productId: allProducts[i], discountId });
+          this.logger.error(error as Error, { scope: "removeFromProductMetafields", productId: productsToProcess[i], discountId });
         }
       }
-
+  
       this.logger.info("Removed discount from products", { removed: removalCount, attempted: maxProducts });
     } catch (error) {
       this.logger.error(error as Error, { scope: "removeFromProductMetafields.root", discountId });
