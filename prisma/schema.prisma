@@ -1,13 +1,7 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
-// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
-// enough when changing adapters.
-// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
   provider = "sqlite"
   url      = "file:dev.sqlite"
@@ -32,14 +26,21 @@ model Session {
 }
 
 model DiscountMetafieldRule {
-  id                  Int      @id @default(autoincrement())
-  discountId          String   // Shopify discount ID
-  discountType        String   // "code" or "automatic"  
-  discountTitle       String   // Display name
-  metafieldNamespace  String   // e.g., "discount_manager"
-  metafieldKey        String   // e.g., "active_discounts"
-  metafieldValue      String   // JSON string of discount data
-  isActive            Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                 Int       @id @default(autoincrement())
+  discountId         String
+  discountType       String
+  discountTitle      String
+  metafieldNamespace String
+  metafieldKey       String
+  metafieldValue     String
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  discountValue      String?
+  discountValueType  String?
+  status             String    @default("ACTIVE")
+  startDate          DateTime?
+  endDate            DateTime?
+  productsCount      Int       @default(0)
+  lastRan            DateTime?
 }

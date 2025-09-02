@@ -170,7 +170,12 @@ export class WebhookDiscountProcessor {
       data: {
         discountTitle: extractedData.title,
         metafieldValue: JSON.stringify(extractedData),
-        isActive: true
+        isActive: true,
+        discountValue: extractedData.value?.displayValue || null,
+        discountValueType: extractedData.type || null,
+        status: extractedData.status || "ACTIVE",
+        startDate: extractedData.startsAt ? new Date(extractedData.startsAt) : null,
+        endDate: extractedData.endsAt ? new Date(extractedData.endsAt) : null,
       }
     });
 
@@ -184,7 +189,13 @@ export class WebhookDiscountProcessor {
           metafieldNamespace: "discount_manager",
           metafieldKey: "active_discounts",
           metafieldValue: JSON.stringify(extractedData),
-          isActive: true
+          isActive: true,
+          discountValue: extractedData.value?.displayValue || null,
+          discountValueType: extractedData.type || null,
+          status: extractedData.status || "ACTIVE",
+          startDate: extractedData.startsAt ? new Date(extractedData.startsAt) : null,
+          endDate: extractedData.endsAt ? new Date(extractedData.endsAt) : null,
+          productsCount: 0,
         }
       });
     }
@@ -212,7 +223,10 @@ export class WebhookDiscountProcessor {
     // Deactivate rule
     await prisma.discountMetafieldRule.updateMany({
       where: { discountId: String(discountId) },
-      data: { isActive: false }
+      data: { 
+        isActive: false,
+        status: "DELETED" // Update status to DELETED
+      }
     });
 
     this.logger.info(`✅ Deactivated metafield rule for deleted discount: ${discountId}`);
@@ -386,6 +400,16 @@ export class WebhookDiscountProcessor {
         } catch (error) {
           this.logger.error(error as Error, { scope: "updateAffectedProductMetafields", productId: affectedProducts[i], discountId: extractedData.id });
         }
+      }
+
+      // Update the products count in the database
+      try {
+        await prisma.discountMetafieldRule.updateMany({
+          where: { discountId: String(extractedData.id) },
+          data: { productsCount: affectedProducts.length }
+        });
+      } catch (error) {
+        this.logger.error(error as Error, { scope: "updateProductsCount", discountId: extractedData.id });
       }
 
       this.logger.info("Updated product metafields", { updated: updateCount, attempted: maxProducts });

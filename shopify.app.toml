@@ -2,7 +2,7 @@
 
 client_id = "1e230754459dc2aec3bc6f7d355989bd"
 name = "discount-remix-akash"
-application_url = "https://citizen-str-patrick-read.trycloudflare.com"
+application_url = "https://yorkshire-lanes-bruce-fixed.trycloudflare.com"
 embedded = true
 handle = "discount-remix-akash"
 
@@ -37,7 +37,7 @@ api_version = "2025-07"
 scopes = "write_products,read_discounts,read_metaobjects,write_metaobjects"
 
 [auth]
-redirect_urls = ["https://citizen-str-patrick-read.trycloudflare.com/auth/callback", "https://citizen-str-patrick-read.trycloudflare.com/auth/shopify/callback", "https://citizen-str-patrick-read.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://yorkshire-lanes-bruce-fixed.trycloudflare.com/auth/callback", "https://yorkshire-lanes-bruce-fixed.trycloudflare.com/auth/shopify/callback", "https://yorkshire-lanes-bruce-fixed.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false
