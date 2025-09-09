@@ -275,6 +275,7 @@ export class WebhookDiscountProcessor {
             node(id: $id) {
               __typename
               ... on DiscountCodeBasic {
+                __typename
                 title
                 summary
                 status
@@ -294,6 +295,7 @@ export class WebhookDiscountProcessor {
                 }
               }
               ... on DiscountAutomaticBasic {
+                __typename
                 title
                 summary
                 status
@@ -311,12 +313,38 @@ export class WebhookDiscountProcessor {
                   }
                 }
               }
+              ... on DiscountAutomaticBxgy {
+                __typename
+                title
+                summary
+                status
+                startsAt
+                endsAt
+                customerGets {
+                  value {
+                    ... on DiscountAmount { __typename amount { amount currencyCode } }
+                    ... on DiscountPercentage { __typename percentage }
+                  }
+                  items {
+                    ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
+                    ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
+                    ... on AllDiscountItems { allItems }
+                  }
+                }
+                customerBuys {
+                  items {
+                    ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
+                    ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
+                    ... on AllDiscountItems { allItems }
+                  }
+                }
+              }
             }
           }
         `, { variables: { id } });
         const nodeData = await nodeResp.json();
         const typename = nodeData.data?.node?.__typename;
-        if (typename === 'DiscountCodeBasic' || typename === 'DiscountAutomaticBasic') {
+        if (typename === 'DiscountCodeBasic' || typename === 'DiscountAutomaticBasic' || typename === 'DiscountAutomaticBxgy') {
           this.logger.debug("Fetched discount via node()", { id, typename });
           try { this.logger.debug("Full discount payload", { discount: nodeData.data.node }); } catch {}
           return { nodeId: nodeData.data.node.id, discount: nodeData.data.node };
@@ -331,7 +359,9 @@ export class WebhookDiscountProcessor {
             discountNode(id: $id) {
               id
               discount {
+                __typename
                 ... on DiscountCodeBasic {
+                  __typename
                   title
                   summary
                   status
@@ -351,6 +381,7 @@ export class WebhookDiscountProcessor {
                   }
                 }
                 ... on DiscountAutomaticBasic {
+                  __typename
                   title
                   summary
                   status
@@ -361,6 +392,32 @@ export class WebhookDiscountProcessor {
                       ... on DiscountAmount { __typename amount { amount currencyCode } }
                       ... on DiscountPercentage { __typename percentage }
                     }
+                    items {
+                      ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
+                      ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
+                      ... on AllDiscountItems { allItems }
+                    }
+                  }
+                }
+                ... on DiscountAutomaticBxgy {
+                  __typename
+                  title
+                  summary
+                  status
+                  startsAt
+                  endsAt
+                  customerGets {
+                    value {
+                      ... on DiscountAmount { __typename amount { amount currencyCode } }
+                      ... on DiscountPercentage { __typename percentage }
+                    }
+                    items {
+                      ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
+                      ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
+                      ... on AllDiscountItems { allItems }
+                    }
+                  }
+                  customerBuys {
                     items {
                       ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
                       ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
@@ -446,9 +503,8 @@ export class WebhookDiscountProcessor {
 
   private async removeFromProductMetafields(existingRule: any, discountId: string) {
     try {
-      let storedDiscountDetails;
       try {
-        storedDiscountDetails = JSON.parse(existingRule.metafieldValue);
+        JSON.parse(existingRule.metafieldValue);
       } catch (error) {
         this.logger.warn("Could not parse stored discount details", { discountId, metafieldValue: existingRule.metafieldValue });
       }

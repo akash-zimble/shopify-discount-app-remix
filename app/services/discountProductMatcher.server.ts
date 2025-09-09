@@ -82,7 +82,9 @@ export class DiscountProductMatcher {
         discountNode(id: $id) {
           id
           discount {
+            __typename
             ... on DiscountCodeBasic {
+              __typename
               title
               status
               summary
@@ -126,6 +128,7 @@ export class DiscountProductMatcher {
               }
             }
             ... on DiscountAutomaticBasic {
+              __typename
               title
               status
               summary
@@ -169,6 +172,7 @@ export class DiscountProductMatcher {
               }
             }
             ... on DiscountAutomaticBxgy {
+              __typename
               title
               status
               summary
@@ -210,6 +214,28 @@ export class DiscountProductMatcher {
                   }
                 }
               }
+              customerBuys {
+                items {
+                  ... on DiscountProducts {
+                    products(first: 250) { edges { node { id } } }
+                  }
+                  ... on DiscountCollections {
+                    collections(first: 250) { edges { node { id } } }
+                  }
+                  ... on AllDiscountItems { allItems }
+                }
+              }
+              customerBuys {
+                items {
+                  ... on DiscountProducts {
+                    products(first: 250) { edges { node { id } } }
+                  }
+                  ... on DiscountCollections {
+                    collections(first: 250) { edges { node { id } } }
+                  }
+                  ... on AllDiscountItems { allItems }
+                }
+              }
             }
           }
         }
@@ -235,28 +261,30 @@ export class DiscountProductMatcher {
     this.logger.debug("CUSTOMER GETS", { customerGets: discount.customerGets });
     
     const customerGets = discount.customerGets;
+    const customerBuys = discount.__typename === 'DiscountAutomaticBxgy' ? (discount as any).customerBuys : undefined;
     const value = customerGets?.value;
     
     this.logger.debug("VALUE DATA", { value });
     
     // Parse the items and value
-    const items = customerGets?.items;
+    const itemsGets = customerGets?.items;
+    const itemsBuys = customerBuys?.items;
     let appliesToAll = false;
     let productIds: string[] = [];
     let collectionIds: string[] = [];
 
-    if (items) {
-      // Check each key in the items object
-      if (items.allItems === true) {
-        appliesToAll = true;
-      }
-      if (items.products?.edges) {
-        productIds = items.products.edges.map((edge: any) => edge.node.id);
-      }
-      if (items.collections?.edges) {
-        collectionIds = items.collections.edges.map((edge: any) => edge.node.id);
-      }
-    }
+    const accumulate = (items: any) => {
+      if (!items) return;
+      if (items.allItems === true) appliesToAll = true;
+      if (items.products?.edges) productIds.push(...items.products.edges.map((e: any) => e.node.id));
+      if (items.collections?.edges) collectionIds.push(...items.collections.edges.map((e: any) => e.node.id));
+    };
+
+    accumulate(itemsGets);
+    accumulate(itemsBuys);
+
+    productIds = Array.from(new Set(productIds));
+    collectionIds = Array.from(new Set(collectionIds));
 
     this.logger.info("Parsed discount targeting", { appliesToAll, productCount: productIds.length, collectionCount: collectionIds.length });
 
@@ -268,7 +296,8 @@ export class DiscountProductMatcher {
       productIds: productIds,
       collectionIds: collectionIds,
       value: value, 
-      customerGets: customerGets
+      customerGets: customerGets,
+      customerBuys: customerBuys
     }
   }
 

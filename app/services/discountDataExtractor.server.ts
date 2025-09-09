@@ -35,13 +35,18 @@ export interface ExtractedDiscountData {
       let discountType: "code" | "automatic" = "automatic";
       let valueAmount = "";
       let valueType = "unknown";
+      const typename = discountDetails.__typename;
       
       if (code) {
         discountType = "code";
       }
       
       // Extract value details based on type
-      if (value.__typename === "DiscountPercentage") {
+      if (typename === 'DiscountAutomaticBxgy' || discountDetails?.__typename === 'DiscountAutomaticBxgy') {
+        valueType = "bxgy";
+        // Prefer human-friendly summary for BxGy
+        valueAmount = discountDetails.summary || "Buy X Get Y";
+      } else if (value.__typename === "DiscountPercentage") {
         valueType = "percentage";
         const pct = typeof value.percentage === "number" ? value.percentage : Number(value.percentage);
         const displayPct = pct > 1 ? pct : pct * 100;
@@ -53,7 +58,9 @@ export interface ExtractedDiscountData {
 
       const details: string[] = [];
       if (valueType === "percentage" && valueAmount) details.push(`${valueAmount} off`);
+      if (valueType === "bxgy" && valueAmount) details.push(valueAmount);
       if (discountDetails.startsAt) details.push("Active from today");
+      if (typename === 'DiscountAutomaticBxgy') details.push("Buy X Get Y");
       const customerEligibility: "all" | "segment" | "specific" = "all";
       const posExcluded = undefined as unknown as boolean | undefined;
       const canCombine = undefined as unknown as boolean | undefined;

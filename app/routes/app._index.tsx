@@ -2,21 +2,7 @@ import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
-import {
-  Page,
-  Layout,
-  Text,
-  Card,
-  Button,
-  BlockStack,
-  Box,
-  DataTable,
-  Badge,
-  Icon,
-  InlineStack,
-  EmptyState,
-  Spinner,
-} from "@shopify/polaris";
+import { Page, Layout, Text, Card, Button, BlockStack, DataTable, Badge, InlineStack, EmptyState, Spinner } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -57,7 +43,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
+  await authenticate.admin(request);
   const formData = await request.formData();
   const action = formData.get('action');
 
@@ -87,10 +73,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function Index() {
   const { discounts } = useLoaderData<typeof loader>();
   const fetcher = useFetcher();
+  const [loadingId, setLoadingId] = useState<number | null>(null);
 
   const formatDate = (date: Date | string | null) => {
     if (!date) return '-';
     return new Date(date).toLocaleDateString('en-GB');
+  };
+
+  const formatDateTime = (date: Date | string | null) => {
+    if (!date) return '-';
+    return new Date(date).toLocaleString('en-GB');
   };
 
   const getStatusBadge = (status: string) => {
@@ -109,11 +101,18 @@ export default function Index() {
   };
 
   const handleRefresh = (discountId: number) => {
+    setLoadingId(discountId);
     fetcher.submit(
       { action: 'refresh', discountId: discountId.toString() },
       { method: 'post' }
     );
   };
+
+  useEffect(() => {
+    if (fetcher.state === 'idle') {
+      setLoadingId(null);
+    }
+  }, [fetcher.state]);
 
   const rows = discounts.map(discount => [
     discount.title,
@@ -123,22 +122,31 @@ export default function Index() {
     getStatusBadge(discount.status),
     formatDate(discount.startDate),
     formatDate(discount.endDate),
-    <Button
-      key={`refresh-${discount.id}`}
-      icon="RefreshMinor"
-      onClick={() => handleRefresh(discount.id)}
-      disabled={fetcher.state === 'submitting'}
-      size="slim"
-    />,
-    formatDate(discount.lastRan),
+    <>
+      {loadingId === discount.id ? (
+        <InlineStack align="center" gap="100">
+          <Spinner accessibilityLabel="Refreshing" size="small" />
+          <Text as="span" variant="bodySm">Refreshing…</Text>
+        </InlineStack>
+      ) : (
+        <Button
+          key={`refresh-${discount.id}`}
+          onClick={() => handleRefresh(discount.id)}
+          size="slim"
+        >
+          Refresh
+        </Button>
+      )}
+    </>,
+    formatDateTime(discount.lastRan),
   ]);
 
   return (
     <>
       <TitleBar title="Discounts as Meta Fields" />
-      <Page>
+      <Page fullWidth>
         <Layout>
-          <Layout.Section>
+          <Layout.Section variant="fullWidth">
             <Card>
               <BlockStack gap="400">
                 <InlineStack align="space-between">
