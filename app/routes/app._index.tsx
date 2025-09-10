@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
-import { Page, Layout, Text, Card, Button, BlockStack, DataTable, Badge, InlineStack, EmptyState, Spinner } from "@shopify/polaris";
+import type { SerializeFrom } from "@remix-run/node";
+import { Page, Layout, Text, Card, Button, BlockStack, DataTable, Badge, InlineStack, EmptyState, Spinner, Toast, Frame } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { DiscountProductMatcher } from "../services/discountProductMatcher.server";
+import { createLogger } from "../utils/logger.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -43,26 +46,123 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  await authenticate.admin(request);
+  const { admin } = await authenticate.admin(request);
   const formData = await request.formData();
   const action = formData.get('action');
 
   if (action === 'refresh') {
-    const discountId = formData.get('discountId') as string;
+    const ruleId = formData.get('ruleId') as string;
     
     try {
-      console.log(`Refreshing discount ${discountId}...`);
+      console.log(`Refreshing discount rule ${ruleId}...`);
       
-      // Update the lastRan timestamp
-      const updated = await prisma.discountMetafieldRule.update({
-        where: { id: parseInt(discountId) },
-        data: { lastRan: new Date() }
+      // Get the existing rule to extract discount data
+      const existingRule = await prisma.discountMetafieldRule.findUnique({
+        where: { id: parseInt(ruleId) }
       });
+
+      if (!existingRule) {
+        return json({ success: false, message: "Discount rule not found" }, { status: 404 });
+      }
+
+      // Parse the stored discount data
+      let discountData;
+      try {
+        discountData = JSON.parse(existingRule.metafieldValue);
+      } catch (error) {
+        console.error("Error parsing stored discount data:", error);
+        return json({ success: false, message: "Invalid discount data" }, { status: 500 });
+      }
+
+      const logger = createLogger({ name: "manual-refresh" });
+      const adminClient = createAdminWrapper(admin);
+      const matcher = new DiscountProductMatcher(adminClient, logger);
+
+      if (existingRule.isActive && discountData.id) {
+        // ACTIVE DISCOUNT: Update product metafields with current discount data
+        try {
+          // Get affected products and update their metafields
+          const affectedProducts = await matcher.getAffectedProducts(discountData.id);
+          let updateCount = 0;
+          const maxProducts = Math.min(affectedProducts.length, 10); // Limit to prevent timeouts
+
+          for (let i = 0; i < maxProducts; i++) {
+            try {
+              const success = await matcher.updateProductMetafield(affectedProducts[i], discountData);
+              if (success) updateCount++;
+              await new Promise(resolve => setTimeout(resolve, 500)); // Rate limiting
+            } catch (error) {
+              console.error(`Error updating product ${affectedProducts[i]}:`, error);
+            }
+          }
+
+          // Update the products count in the database
+          await prisma.discountMetafieldRule.update({
+            where: { id: parseInt(ruleId) },
+            data: { 
+              lastRan: new Date(),
+              productsCount: affectedProducts.length
+            }
+          });
+
+          console.log(`Updated ${updateCount} product metafields for active discount ${discountData.id}`);
+        } catch (error) {
+          console.error("Error updating product metafields:", error);
+          // Continue with database update even if product updates fail
+        }
+      } else if (!existingRule.isActive && discountData.id) {
+        // INACTIVE DISCOUNT: Remove from product metafields to clean up
+        try {
+          console.log(`Cleaning up inactive discount ${discountData.id} from product metafields...`);
+          
+          // Get all products that might have this discount
+          const allProducts = await matcher.getAllProductIds();
+          let removalCount = 0;
+          const maxProducts = Math.min(allProducts.length, 20); // Limit to prevent timeouts
+
+          for (let i = 0; i < maxProducts; i++) {
+            try {
+              const success = await matcher.removeDiscountFromProduct(allProducts[i], discountData.id);
+              if (success) removalCount++;
+              await new Promise(resolve => setTimeout(resolve, 500)); // Rate limiting
+            } catch (error) {
+              console.error(`Error removing discount from product ${allProducts[i]}:`, error);
+            }
+          }
+
+          // Update the database
+          await prisma.discountMetafieldRule.update({
+            where: { id: parseInt(ruleId) },
+            data: { 
+              lastRan: new Date(),
+              productsCount: 0 // Set to 0 since discount is inactive
+            }
+          });
+
+          console.log(`Removed inactive discount ${discountData.id} from ${removalCount} product metafields`);
+        } catch (error) {
+          console.error("Error removing discount from product metafields:", error);
+          // Continue with database update even if product updates fail
+        }
+      } else {
+        // No discount ID or other edge case - just update timestamp
+        await prisma.discountMetafieldRule.update({
+          where: { id: parseInt(ruleId) },
+          data: { lastRan: new Date() }
+        });
+      }
       
-      console.log(`Successfully updated discount ${discountId}, lastRan: ${updated.lastRan}`);
-      return json({ success: true, message: "Discount refreshed successfully", lastRan: updated.lastRan });
+      const actionType = existingRule.isActive ? "updated" : "cleaned up";
+      console.log(`Successfully ${actionType} discount rule ${ruleId}`);
+      return json({ 
+        success: true, 
+        message: existingRule.isActive 
+          ? "Discount refreshed and product metafields updated" 
+          : "Inactive discount cleaned up from product metafields", 
+        lastRan: new Date().toISOString() 
+      });
     } catch (error) {
-      console.error("Error updating lastRan:", error);
+      console.error("Error refreshing discount:", error);
       return json({ success: false, message: "Failed to refresh discount", error: String(error) }, { status: 500 });
     }
   }
@@ -70,10 +170,25 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   return json({ success: false });
 };
 
+function createAdminWrapper(admin: any) {
+  return {
+    graphql: async (query: string, options: any = {}) => {
+      return await admin.graphql(query, options);
+    }
+  } as any;
+}
+
+type Discount = SerializeFrom<typeof loader>['discounts'][0];
+
 export default function Index() {
   const { discounts } = useLoaderData<typeof loader>();
-  const fetcher = useFetcher();
+  const fetcher = useFetcher<{ success: boolean; message?: string; lastRan?: string; error?: string }>();
   const [loadingId, setLoadingId] = useState<number | null>(null);
+  const [localDiscounts, setLocalDiscounts] = useState<Discount[]>(discounts);
+  const [toastProps, setToastProps] = useState<{
+    content: string;
+    error?: boolean;
+  } | null>(null);
 
   const formatDate = (date: Date | string | null) => {
     if (!date) return '-';
@@ -100,21 +215,42 @@ export default function Index() {
     }
   };
 
-  const handleRefresh = (discountId: number) => {
-    setLoadingId(discountId);
+  const handleRefresh = (ruleId: number) => {
+    setLoadingId(ruleId);
     fetcher.submit(
-      { action: 'refresh', discountId: discountId.toString() },
+      { action: 'refresh', ruleId: ruleId.toString() },
       { method: 'post' }
     );
   };
 
   useEffect(() => {
-    if (fetcher.state === 'idle') {
+    if (fetcher.state === 'idle' && fetcher.data) {
       setLoadingId(null);
+      
+      if (fetcher.data.success && fetcher.data.lastRan) {
+        // Update the local state with the new lastRan timestamp
+        setLocalDiscounts(prev => 
+          prev.map(discount => 
+            discount.id === loadingId 
+              ? { ...discount, lastRan: fetcher.data?.lastRan! }
+              : discount
+          )
+        );
+        // Show success toast
+        setToastProps({
+          content: fetcher.data.message || "Discount refreshed successfully"
+        });
+      } else if (fetcher.data.success === false) {
+        // Show error toast
+        setToastProps({
+          content: fetcher.data.message || "Failed to refresh discount",
+          error: true
+        });
+      }
     }
-  }, [fetcher.state]);
+  }, [fetcher.state, fetcher.data, loadingId]);
 
-  const rows = discounts.map(discount => [
+  const rows = localDiscounts.map(discount => [
     discount.title,
     discount.type,
     discount.discount,
@@ -142,7 +278,7 @@ export default function Index() {
   ]);
 
   return (
-    <>
+    <Frame>
       <TitleBar title="Discounts as Meta Fields" />
       <Page fullWidth>
         <Layout>
@@ -155,7 +291,7 @@ export default function Index() {
                   </Text>
                 </InlineStack>
                 
-                {discounts.length === 0 ? (
+                {localDiscounts.length === 0 ? (
                   <EmptyState
                     heading="No discounts found"
                     image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
@@ -194,6 +330,13 @@ export default function Index() {
           </Layout.Section>
         </Layout>
       </Page>
-    </>
+      {toastProps && (
+        <Toast
+          content={toastProps.content}
+          error={toastProps.error}
+          onDismiss={() => setToastProps(null)}
+        />
+      )}
+    </Frame>
   );
 }

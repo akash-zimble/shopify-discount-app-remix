@@ -476,9 +476,11 @@ export class WebhookDiscountProcessor {
         try {
           const success = await matcher.updateProductMetafield(affectedProducts[i], extractedData);
           if (success) updateCount++;
-          await new Promise(resolve => setTimeout(resolve, 200));
+          // Increased rate limiting to prevent API throttling
+          await new Promise(resolve => setTimeout(resolve, 500));
         } catch (error) {
           this.logger.error(error as Error, { scope: "updateAffectedProductMetafields", productId: affectedProducts[i], discountId: extractedData.id });
+          // Continue processing other products even if one fails
         }
       }
 

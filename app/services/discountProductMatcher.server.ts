@@ -225,17 +225,6 @@ export class DiscountProductMatcher {
                   ... on AllDiscountItems { allItems }
                 }
               }
-              customerBuys {
-                items {
-                  ... on DiscountProducts {
-                    products(first: 250) { edges { node { id } } }
-                  }
-                  ... on DiscountCollections {
-                    collections(first: 250) { edges { node { id } } }
-                  }
-                  ... on AllDiscountItems { allItems }
-                }
-              }
             }
           }
         }
