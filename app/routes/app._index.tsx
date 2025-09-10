@@ -3,11 +3,12 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import type { SerializeFrom } from "@remix-run/node";
-import { Page, Layout, Text, Card, Button, BlockStack, DataTable, Badge, InlineStack, EmptyState, Spinner, Toast, Frame } from "@shopify/polaris";
+import { Page, Layout, Text, Card, Button, BlockStack, DataTable, Badge, InlineStack, EmptyState, Spinner, Toast, Frame, Banner } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { DiscountProductMatcher } from "../services/discountProductMatcher.server";
+import { WebhookDiscountProcessor } from "../services/webhookDiscountProcessor.server";
 import { createLogger } from "../utils/logger.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -49,6 +50,44 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin } = await authenticate.admin(request);
   const formData = await request.formData();
   const action = formData.get('action');
+
+  if (action === 'initialize') {
+    try {
+      console.log('Starting discount initialization...');
+      
+      const logger = createLogger({ name: "manual-initialization" });
+      const adminClient = createAdminWrapper(admin);
+      const processor = new WebhookDiscountProcessor(adminClient, logger);
+
+      const result = await processor.initializeAllDiscounts();
+      
+      console.log('Initialization completed:', result);
+      
+      if (result.success) {
+        return json({ 
+          success: true, 
+          message: `Successfully initialized ${result.processed} discounts. Found ${result.totalFound} total discounts, skipped ${result.skipped} existing ones.`,
+          processed: result.processed,
+          totalFound: result.totalFound,
+          skipped: result.skipped,
+          errors: result.errors
+        });
+      } else {
+        return json({ 
+          success: false, 
+          message: "Failed to initialize discounts", 
+          error: result.error 
+        }, { status: 500 });
+      }
+    } catch (error) {
+      console.error("Error during initialization:", error);
+      return json({ 
+        success: false, 
+        message: "Failed to initialize discounts", 
+        error: String(error) 
+      }, { status: 500 });
+    }
+  }
 
   if (action === 'refresh') {
     const ruleId = formData.get('ruleId') as string;
@@ -182,8 +221,18 @@ type Discount = SerializeFrom<typeof loader>['discounts'][0];
 
 export default function Index() {
   const { discounts } = useLoaderData<typeof loader>();
-  const fetcher = useFetcher<{ success: boolean; message?: string; lastRan?: string; error?: string }>();
+  const fetcher = useFetcher<{ 
+    success: boolean; 
+    message?: string; 
+    lastRan?: string; 
+    error?: string;
+    processed?: number;
+    totalFound?: number;
+    skipped?: number;
+    errors?: number;
+  }>();
   const [loadingId, setLoadingId] = useState<number | null>(null);
+  const [isInitializing, setIsInitializing] = useState(false);
   const [localDiscounts, setLocalDiscounts] = useState<Discount[]>(discounts);
   const [toastProps, setToastProps] = useState<{
     content: string;
@@ -223,27 +272,42 @@ export default function Index() {
     );
   };
 
+  const handleInitialize = () => {
+    setIsInitializing(true);
+    fetcher.submit(
+      { action: 'initialize' },
+      { method: 'post' }
+    );
+  };
+
   useEffect(() => {
     if (fetcher.state === 'idle' && fetcher.data) {
       setLoadingId(null);
+      setIsInitializing(false);
       
-      if (fetcher.data.success && fetcher.data.lastRan) {
-        // Update the local state with the new lastRan timestamp
-        setLocalDiscounts(prev => 
-          prev.map(discount => 
-            discount.id === loadingId 
-              ? { ...discount, lastRan: fetcher.data?.lastRan! }
-              : discount
-          )
-        );
+      if (fetcher.data.success) {
+        if (fetcher.data.lastRan) {
+          // This is a refresh response - update the local state with the new lastRan timestamp
+          setLocalDiscounts(prev => 
+            prev.map(discount => 
+              discount.id === loadingId 
+                ? { ...discount, lastRan: fetcher.data?.lastRan! }
+                : discount
+            )
+          );
+        } else if (fetcher.data.processed !== undefined) {
+          // This is an initialization response - reload the page to show new discounts
+          window.location.reload();
+        }
+        
         // Show success toast
         setToastProps({
-          content: fetcher.data.message || "Discount refreshed successfully"
+          content: fetcher.data.message || "Operation completed successfully"
         });
       } else if (fetcher.data.success === false) {
         // Show error toast
         setToastProps({
-          content: fetcher.data.message || "Failed to refresh discount",
+          content: fetcher.data.message || "Operation failed",
           error: true
         });
       }
@@ -289,14 +353,41 @@ export default function Index() {
                   <Text variant="headingMd" as="h2">
                     Discount Management
                   </Text>
+                  {localDiscounts.length > 0 && (
+                    <Button
+                      onClick={handleInitialize}
+                      disabled={isInitializing}
+                      loading={isInitializing}
+                      size="slim"
+                    >
+                      {isInitializing ? "Initializing..." : "Sync All Discounts"}
+                    </Button>
+                  )}
                 </InlineStack>
                 
                 {localDiscounts.length === 0 ? (
                   <EmptyState
                     heading="No discounts found"
                     image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                    action={{
+                      content: isInitializing ? (
+                        <InlineStack align="center" gap="100">
+                          <Spinner accessibilityLabel="Initializing" size="small" />
+                          <Text as="span" variant="bodySm">Initializing...</Text>
+                        </InlineStack>
+                      ) : (
+                        "Initialize Discounts"
+                      ),
+                      onAction: handleInitialize,
+                      disabled: isInitializing
+                    }}
                   >
-                    <p>Create your first discount to get started.</p>
+                    <p>
+                      {isInitializing 
+                        ? "Fetching all existing discounts from your store and setting up metafields..."
+                        : "Click 'Initialize Discounts' to fetch all existing discounts from your store and set up the necessary metafields for tracking."
+                      }
+                    </p>
                   </EmptyState>
                 ) : (
                   <DataTable

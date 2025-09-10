@@ -17,6 +17,28 @@ export interface ExtractedDiscountData {
     appliesTo?: "one_time" | "subscriptions" | "both";
     details?: string[];
   }
+
+  // Utility function to normalize discount IDs
+  export function normalizeDiscountId(id: string): string {
+    if (!id) return "";
+    
+    // If it's already a numeric string, return as is
+    if (/^\d+$/.test(id)) {
+      return id;
+    }
+    
+    // If it's a GraphQL ID, extract the numeric part
+    if (id.includes('/')) {
+      const parts = id.split('/');
+      const numericPart = parts[parts.length - 1];
+      if (/^\d+$/.test(numericPart)) {
+        return numericPart;
+      }
+    }
+    
+    // Fallback: return the original ID
+    return id;
+  }
   
   export class DiscountDataExtractor {
     static extractFromFullDetails(discountDetails: any): ExtractedDiscountData {
@@ -72,7 +94,7 @@ export interface ExtractedDiscountData {
       }
       
       return {
-        id: discountDetails.id || "",
+        id: normalizeDiscountId(discountDetails.id || ""),
         title: discountDetails.title || "Untitled Discount",
         code: code,
         value: {
@@ -97,8 +119,9 @@ export interface ExtractedDiscountData {
     
     static extractFromWebhookPayload(payload: any): ExtractedDiscountData {
       // Fallback extraction from minimal webhook data
+      const rawId = payload.admin_graphql_api_id?.split('/').pop() || payload.id || "";
       return {
-        id: payload.admin_graphql_api_id?.split('/').pop() || payload.id || "",
+        id: normalizeDiscountId(rawId),
         title: payload.title || "Untitled Discount",
         code: "", // Webhook doesn't provide codes
         value: {

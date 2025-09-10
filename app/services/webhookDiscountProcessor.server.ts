@@ -1,6 +1,6 @@
 import prisma from "../db.server";
 import { DiscountProductMatcher } from "./discountProductMatcher.server";
-import { DiscountDataExtractor } from "./discountDataExtractor.server";
+import { DiscountDataExtractor, normalizeDiscountId } from "./discountDataExtractor.server";
 import type { Logger } from "../utils/logger.server";
 
 export class WebhookDiscountProcessor {
@@ -13,14 +13,15 @@ export class WebhookDiscountProcessor {
   }
 
   async processDiscountCreate(payload: any) {
-    const discountId = payload.admin_graphql_api_id?.split('/').pop() || payload.id;
+    const rawDiscountId = payload.admin_graphql_api_id?.split('/').pop() || payload.id;
+    const discountId = normalizeDiscountId(rawDiscountId);
 
     if (!discountId) {
       throw new Error("No discount ID found in payload");
     }
 
     const existingRule = await prisma.discountMetafieldRule.findFirst({
-      where: { discountId: String(discountId), isActive: true }
+      where: { discountId: discountId, isActive: true }
     });
 
     const fullDiscountDetails = await this.fetchFullDiscountDetails(payload.admin_graphql_api_id || `gid://shopify/DiscountNode/${discountId}`);
@@ -54,7 +55,7 @@ export class WebhookDiscountProcessor {
       this.logger.info("Discount created but not ACTIVE - skipping metafield updates", { discountId, status: extractedData.status });
       if (existingRule) {
         await prisma.discountMetafieldRule.updateMany({
-          where: { discountId: String(discountId) },
+          where: { discountId: discountId },
           data: {
             isActive: false,
             lastRan: new Date() // NEW: Set lastRan
@@ -63,7 +64,7 @@ export class WebhookDiscountProcessor {
       } else {
         await prisma.discountMetafieldRule.create({
           data: {
-            discountId: String(discountId),
+            discountId: discountId,
             discountType: extractedData.discountType,
             discountTitle: extractedData.title,
             metafieldNamespace: "discount_manager",
@@ -85,7 +86,7 @@ export class WebhookDiscountProcessor {
 
     if (existingRule) {
       await prisma.discountMetafieldRule.updateMany({
-        where: { discountId: String(discountId) },
+        where: { discountId: discountId },
         data: {
           discountTitle: extractedData.title,
           metafieldValue: JSON.stringify(extractedData),
@@ -102,7 +103,7 @@ export class WebhookDiscountProcessor {
     } else {
       await prisma.discountMetafieldRule.create({
         data: {
-          discountId: String(discountId),
+          discountId: discountId,
           discountType: extractedData.discountType,
           discountTitle: extractedData.title,
           metafieldNamespace: "discount_manager",
@@ -130,7 +131,8 @@ export class WebhookDiscountProcessor {
   }
 
   async processDiscountUpdate(payload: any) {
-    const discountId = payload.admin_graphql_api_id?.split('/').pop() || payload.id;
+    const rawDiscountId = payload.admin_graphql_api_id?.split('/').pop() || payload.id;
+    const discountId = normalizeDiscountId(rawDiscountId);
 
     if (!discountId) {
       throw new Error("No discount ID found in payload");
@@ -165,7 +167,7 @@ export class WebhookDiscountProcessor {
 
     // Fetch existing rule once for reuse
     const existingRule = await prisma.discountMetafieldRule.findFirst({
-      where: { discountId: String(discountId) }
+      where: { discountId: discountId }
     });
 
     // Check status - if not ACTIVE, treat as deletion (remove from metafields, set isActive: false)
@@ -173,7 +175,7 @@ export class WebhookDiscountProcessor {
       this.logger.info("Discount updated but not ACTIVE - treating as removal", { discountId, status: extractedData.status });
       if (existingRule) {
         await prisma.discountMetafieldRule.updateMany({
-          where: { discountId: String(discountId) },
+          where: { discountId: discountId },
           data: {
             metafieldValue: JSON.stringify(extractedData), // Optional: Update value for record-keeping
             isActive: false,
@@ -181,14 +183,14 @@ export class WebhookDiscountProcessor {
             status: extractedData.status || "EXPIRED" // Ensure status is updated
           }
         });
-        await this.removeFromProductMetafields(existingRule, String(discountId));
+        await this.removeFromProductMetafields(existingRule, discountId);
       }
       return extractedData;
     }
 
     // Normal update for ACTIVE discounts
     const updated = await prisma.discountMetafieldRule.updateMany({
-      where: { discountId: String(discountId) },
+      where: { discountId: discountId },
       data: {
         discountTitle: extractedData.title,
         metafieldValue: JSON.stringify(extractedData),
@@ -206,7 +208,7 @@ export class WebhookDiscountProcessor {
       // Create if doesn't exist
       await prisma.discountMetafieldRule.create({
         data: {
-          discountId: String(discountId),
+          discountId: discountId,
           discountType: extractedData.discountType,
           discountTitle: extractedData.title,
           metafieldNamespace: "discount_manager",
@@ -233,7 +235,8 @@ export class WebhookDiscountProcessor {
   }
 
   async processDiscountDelete(payload: any) {
-    const discountId = payload.admin_graphql_api_id?.split('/').pop() || payload.id;
+    const rawDiscountId = payload.admin_graphql_api_id?.split('/').pop() || payload.id;
+    const discountId = normalizeDiscountId(rawDiscountId);
 
     if (!discountId) {
       throw new Error("No discount ID found in payload");
@@ -241,12 +244,12 @@ export class WebhookDiscountProcessor {
 
     // Get existing rule before deactivating
     const existingRule = await prisma.discountMetafieldRule.findFirst({
-      where: { discountId: String(discountId), isActive: true }
+      where: { discountId: discountId, isActive: true }
     });
 
     // Deactivate rule
     await prisma.discountMetafieldRule.updateMany({
-      where: { discountId: String(discountId) },
+      where: { discountId: discountId },
       data: {
         isActive: false,
         status: "DELETED", // Update status to DELETED
@@ -487,7 +490,7 @@ export class WebhookDiscountProcessor {
       // Update the products count in the database
       try {
         await prisma.discountMetafieldRule.updateMany({
-          where: { discountId: String(extractedData.id) },
+          where: { discountId: extractedData.id },
           data: {
             productsCount: affectedProducts.length,
             lastRan: new Date() // NEW: Set lastRan
@@ -520,7 +523,7 @@ export class WebhookDiscountProcessor {
 
       for (let i = 0; i < maxProducts; i++) {
         try {
-          const success = await matcher.removeDiscountFromProduct(productsToProcess[i], String(discountId));
+          const success = await matcher.removeDiscountFromProduct(productsToProcess[i], discountId);
           if (success) removalCount++;
           await new Promise(resolve => setTimeout(resolve, 200));
         } catch (error) {
@@ -531,7 +534,7 @@ export class WebhookDiscountProcessor {
       // NEW: Update lastRan after successful removals
       try {
         await prisma.discountMetafieldRule.updateMany({
-          where: { discountId: String(discountId) },
+          where: { discountId: discountId },
           data: { lastRan: new Date() }
         });
       } catch (error) {
@@ -542,5 +545,227 @@ export class WebhookDiscountProcessor {
     } catch (error) {
       this.logger.error(error as Error, { scope: "removeFromProductMetafields.root", discountId });
     }
+  }
+
+  // New method for initializing all existing discounts
+  async initializeAllDiscounts() {
+    this.logger.info("Starting initialization of all existing discounts");
+    
+    try {
+      // Fetch all discounts from Shopify
+      const allDiscounts = await this.fetchAllDiscountsFromShopify();
+      this.logger.info(`Found ${allDiscounts.length} discounts in Shopify`);
+
+      let processedCount = 0;
+      let skippedCount = 0;
+      let errorCount = 0;
+
+      for (const discount of allDiscounts) {
+        // Normalize the discount ID to ensure consistency (moved outside try block)
+        const normalizedId = normalizeDiscountId(discount.id);
+        
+        try {
+          // Check if we already have this discount in our database
+          const existingRule = await prisma.discountMetafieldRule.findFirst({
+            where: { discountId: normalizedId }
+          });
+
+          if (existingRule) {
+            this.logger.debug(`Skipping existing discount: ${discount.title} (${normalizedId})`);
+            skippedCount++;
+            continue;
+          }
+
+          // Extract discount data
+          const extractedData = DiscountDataExtractor.extractFromFullDetails(discount);
+          
+          // Only process ACTIVE discounts
+          if (extractedData.status !== 'ACTIVE') {
+            this.logger.debug(`Skipping inactive discount: ${discount.title} (${normalizedId}) - Status: ${extractedData.status}`);
+            skippedCount++;
+            continue;
+          }
+
+          // Create database record
+          await prisma.discountMetafieldRule.create({
+            data: {
+              discountId: normalizedId,
+              discountType: extractedData.discountType,
+              discountTitle: extractedData.title,
+              metafieldNamespace: "discount_manager",
+              metafieldKey: "active_discounts",
+              metafieldValue: JSON.stringify(extractedData),
+              isActive: true,
+              lastRan: new Date(),
+              discountValue: extractedData.value?.displayValue || null,
+              discountValueType: extractedData.type || null,
+              status: extractedData.status || "ACTIVE",
+              startDate: extractedData.startsAt ? new Date(extractedData.startsAt) : null,
+              endDate: extractedData.endsAt ? new Date(extractedData.endsAt) : null,
+              productsCount: 0
+            }
+          });
+
+          // Update product metafields
+          await this.updateAffectedProductMetafields(discount.id, extractedData);
+
+          processedCount++;
+          this.logger.info(`Processed discount: ${discount.title} (${normalizedId})`);
+
+          // Rate limiting to prevent API throttling
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+        } catch (error) {
+          this.logger.error(error as Error, { scope: "initializeAllDiscounts.discount", discountId: normalizedId, discountTitle: discount.title });
+          errorCount++;
+        }
+      }
+
+      this.logger.info("Initialization completed", {
+        totalFound: allDiscounts.length,
+        processed: processedCount,
+        skipped: skippedCount,
+        errors: errorCount
+      });
+
+      return {
+        success: true,
+        totalFound: allDiscounts.length,
+        processed: processedCount,
+        skipped: skippedCount,
+        errors: errorCount
+      };
+
+    } catch (error) {
+      this.logger.error(error as Error, { scope: "initializeAllDiscounts.root" });
+      return {
+        success: false,
+        error: String(error)
+      };
+    }
+  }
+
+  private async fetchAllDiscountsFromShopify() {
+    const allDiscounts = [];
+    let hasNextPage = true;
+    let cursor = null;
+
+    while (hasNextPage) {
+      const response: any = await this.adminClient.graphql(`
+        #graphql
+        query getAllDiscounts($first: Int!, $after: String) {
+          discountNodes(first: $first, after: $after) {
+            edges {
+              node {
+                id
+                discount {
+                  __typename
+                  ... on DiscountCodeBasic {
+                    __typename
+                    title
+                    summary
+                    status
+                    startsAt
+                    endsAt
+                    codes(first: 1) { edges { node { code } } }
+                    customerGets {
+                      value {
+                        ... on DiscountAmount { __typename amount { amount currencyCode } }
+                        ... on DiscountPercentage { __typename percentage }
+                      }
+                      items {
+                        ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
+                        ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
+                        ... on AllDiscountItems { allItems }
+                      }
+                    }
+                  }
+                  ... on DiscountAutomaticBasic {
+                    __typename
+                    title
+                    summary
+                    status
+                    startsAt
+                    endsAt
+                    customerGets {
+                      value {
+                        ... on DiscountAmount { __typename amount { amount currencyCode } }
+                        ... on DiscountPercentage { __typename percentage }
+                      }
+                      items {
+                        ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
+                        ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
+                        ... on AllDiscountItems { allItems }
+                      }
+                    }
+                  }
+                  ... on DiscountAutomaticBxgy {
+                    __typename
+                    title
+                    summary
+                    status
+                    startsAt
+                    endsAt
+                    customerGets {
+                      value {
+                        ... on DiscountAmount { __typename amount { amount currencyCode } }
+                        ... on DiscountPercentage { __typename percentage }
+                      }
+                      items {
+                        ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
+                        ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
+                        ... on AllDiscountItems { allItems }
+                      }
+                    }
+                    customerBuys {
+                      items {
+                        ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
+                        ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
+                        ... on AllDiscountItems { allItems }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+          }
+        }
+      `, {
+        variables: { first: 50, after: cursor }
+      });
+
+      const data: any = await response.json();
+      
+      if (data.errors) {
+        this.logger.error("GraphQL errors fetching discounts", { errors: data.errors });
+        break;
+      }
+
+      const edges: any[] = data.data?.discountNodes?.edges || [];
+      const pageInfo: any = data.data?.discountNodes?.pageInfo;
+
+      for (const edge of edges) {
+        if (edge.node?.discount) {
+          allDiscounts.push({
+            id: edge.node.id,
+            ...edge.node.discount
+          });
+        }
+      }
+
+      hasNextPage = pageInfo?.hasNextPage || false;
+      cursor = pageInfo?.endCursor || null;
+
+      // Rate limiting between pages
+      if (hasNextPage) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    return allDiscounts;
   }
 }
