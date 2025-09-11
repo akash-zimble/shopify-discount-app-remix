@@ -1,33 +1,163 @@
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:30:02.142Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:30:05.139Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1276391358642","fallbackNumericId":"1276391358642","finalId":"1276391358642"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:30:05.172Z","message":"Updated metafield rule","discountType":"automatic","title":"buy1get50%on1","discountId":"1276391358642"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:30:05.810Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:30:05.810Z","message":"Processing discount","title":"buy1get50%on1","discountId":"gid://shopify/DiscountAutomaticNode/1276391358642"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:30:06.372Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1276391358642","count":3}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:30:07.528Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1276391358642"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:30:08.988Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1276391358642"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:30:10.737Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1276391358642"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:30:11.263Z","message":"Updated product metafields","updated":3,"attempted":3}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:30:11.263Z","message":"Processed discount update","id":"1276391358642","title":"buy1get50%on1","type":"automatic","code":"N/A (Automatic)","value":"Buy 1 item, get 1 item at 50% off"}
-{"logger":"cron.discount-cleanup","ts":"2025-09-11T07:31:10.245Z","message":"Starting discount cleanup cron job"}
-{"logger":"cron.discount-cleanup","ts":"2025-09-11T07:31:10.250Z","message":"Found 1 active discounts to check"}
-{"logger":"cron.discount-cleanup","ts":"2025-09-11T07:31:10.250Z","message":"Discount 1276391358642 has expired","endDate":"2025-09-11T07:30:20.000Z","currentTime":"2025-09-11T07:31:10.250Z"}
-{"logger":"cron.discount-cleanup","ts":"2025-09-11T07:31:16.795Z","message":"Removed discount from product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1276391358642"}
-{"logger":"cron.discount-cleanup","ts":"2025-09-11T07:31:21.561Z","message":"Removed discount from product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1276391358642"}
-{"logger":"cron.discount-cleanup","ts":"2025-09-11T07:31:24.875Z","message":"Removed discount from product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1276391358642"}
-{"logger":"cron.discount-cleanup","ts":"2025-09-11T07:31:25.717Z","message":"Removed expired discount 1276391358642 from 18 products"}
-{"logger":"cron.discount-cleanup","ts":"2025-09-11T07:31:25.718Z","message":"Cron job completed","totalChecked":1,"expiredFound":1,"deactivatedCount":1}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:32:54.704Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:32:56.876Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1276261269682","fallbackNumericId":"1276261269682","finalId":"1276261269682"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:32:56.881Z","message":"Discount updated but not ACTIVE - treating as removal","discountId":"1276261269682","status":"EXPIRED"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:32:57.467Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:32:57.467Z","message":"Processing discount","title":"11per","discountId":"1276261269682"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:33:00.740Z","message":"Processed discount update","id":"1276261269682","title":"11per","type":"automatic","code":"N/A (Automatic)","value":"11%"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:33:00.739Z","message":"Removed discount from products","removed":3,"attempted":3}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:35:16.852Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:35:19.391Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1276261269682","fallbackNumericId":"1276261269682","finalId":"1276261269682"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:35:19.395Z","message":"Discount updated but not ACTIVE - treating as removal","discountId":"1276261269682","status":"EXPIRED"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:35:19.902Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:35:19.902Z","message":"Processing discount","title":"11per","discountId":"1276261269682"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:35:22.767Z","message":"Removed discount from products","removed":3,"attempted":3}
-{"logger":"webhook.discounts.updated","ts":"2025-09-11T07:35:22.767Z","message":"Processed discount update","id":"1276261269682","title":"11per","type":"automatic","code":"N/A (Automatic)","value":"11%"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:19.466Z","message":"Starting initialization of all existing discounts"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:20.100Z","message":"Found 2 discounts in Shopify"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:20.604Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:20.604Z","message":"Processing discount","title":"10doller of","discountId":"gid://shopify/DiscountAutomaticNode/1276422881458"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:21.093Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1276422881458","count":3}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:21.559Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006759090","title":"The Collection Snowboard: Liquid"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:22.278Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006628018","title":"The Collection Snowboard: Oxygen"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:22.914Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006464178","title":"The Collection Snowboard: Hydrogen"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:23.114Z","message":"Product sync batch completed","total":3,"synced":3,"failed":0,"syncedIds":["gid://shopify/Product/8579006759090","gid://shopify/Product/8579006628018","gid://shopify/Product/8579006464178"],"failedIds":[]}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:23.114Z","message":"Product sync completed","total":3,"synced":3,"failed":0}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:24.040Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1276422881458"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:24.064Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006759090","discountId":"1276422881458"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:26.270Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1276422881458"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:26.292Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006628018","discountId":"1276422881458"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:27.713Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1276422881458"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:27.738Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006464178","discountId":"1276422881458"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:28.250Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:28.251Z","message":"Processed discount: 10doller of (1276422881458)"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:29.783Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:29.783Z","message":"Processing discount","title":"buy 1 get 1 half","discountId":"gid://shopify/DiscountAutomaticNode/1276430549170"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:30.199Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1276430549170","count":3}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:30.671Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006759090","title":"The Collection Snowboard: Liquid"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:31.331Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006628018","title":"The Collection Snowboard: Oxygen"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:32.036Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006464178","title":"The Collection Snowboard: Hydrogen"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:32.236Z","message":"Product sync batch completed","total":3,"synced":3,"failed":0,"syncedIds":["gid://shopify/Product/8579006759090","gid://shopify/Product/8579006628018","gid://shopify/Product/8579006464178"],"failedIds":[]}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:32.237Z","message":"Product sync completed","total":3,"synced":3,"failed":0}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:33.200Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1276430549170"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:33.228Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006759090","discountId":"1276430549170"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:34.692Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1276430549170"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:34.715Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006628018","discountId":"1276430549170"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:36.202Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1276430549170"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:36.225Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006464178","discountId":"1276430549170"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:36.733Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:36.733Z","message":"Processed discount: buy 1 get 1 half (1276430549170)"}
+{"logger":"manual-initialization","ts":"2025-09-11T16:34:37.733Z","message":"Initialization completed","totalFound":2,"processed":2,"skipped":0,"errors":0}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:01.259Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:03.230Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1276422881458","fallbackNumericId":"1276422881458","finalId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:03.234Z","message":"Discount updated but not ACTIVE - treating as removal","discountId":"1276422881458","status":"EXPIRED"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:03.704Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:03.704Z","message":"Processing discount","title":"10doller of","discountId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:05.853Z","message":"Removed discount from product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:05.873Z","message":"Product removed from discount","productId":"gid://shopify/Product/8579006759090","discountId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:06.960Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:07.020Z","message":"Removed discount from product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:07.059Z","message":"Product removed from discount","productId":"gid://shopify/Product/8579006628018","discountId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:08.220Z","message":"Removed discount from product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:08.241Z","message":"Product removed from discount","productId":"gid://shopify/Product/8579006464178","discountId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:08.451Z","message":"Removed discount from products","removed":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:08.452Z","message":"Processed discount update","id":"1276422881458","title":"10doller of","type":"automatic","code":"N/A (Automatic)","value":"10.0 AUD"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:09.171Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1276422881458","fallbackNumericId":"1276422881458","finalId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:09.175Z","message":"Discount updated but not ACTIVE - treating as removal","discountId":"1276422881458","status":"EXPIRED"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:09.903Z","message":"Processing discount","title":"10doller of","discountId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:09.903Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:10.839Z","message":"Product removed from discount","productId":"gid://shopify/Product/8579006759090","discountId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:11.529Z","message":"Product removed from discount","productId":"gid://shopify/Product/8579006628018","discountId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:12.161Z","message":"Product removed from discount","productId":"gid://shopify/Product/8579006464178","discountId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:12.369Z","message":"Removed discount from products","removed":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:35:12.369Z","message":"Processed discount update","id":"1276422881458","title":"10doller of","type":"automatic","code":"N/A (Automatic)","value":"10.0 AUD"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:36:13.565Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:36:15.647Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1276422881458","fallbackNumericId":"1276422881458","finalId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:36:15.651Z","message":"Discount updated but not ACTIVE - treating as removal","discountId":"1276422881458","status":"EXPIRED"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:36:16.124Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:36:16.124Z","message":"Processing discount","title":"10doller of","discountId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:36:17.033Z","message":"Product removed from discount","productId":"gid://shopify/Product/8579006759090","discountId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:36:17.739Z","message":"Product removed from discount","productId":"gid://shopify/Product/8579006628018","discountId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:36:18.411Z","message":"Product removed from discount","productId":"gid://shopify/Product/8579006464178","discountId":"1276422881458"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:36:18.621Z","message":"Removed discount from products","removed":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:36:18.621Z","message":"Processed discount update","id":"1276422881458","title":"10doller of","type":"automatic","code":"N/A (Automatic)","value":"10.0 AUD"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:28.669Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:30.664Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1276430549170","fallbackNumericId":"1276430549170","finalId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:30.682Z","message":"Updated metafield rule","discountType":"automatic","title":"buy 1 get 1 half 123","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:31.113Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:31.113Z","message":"Processing discount","title":"buy 1 get 1 half 123","discountId":"gid://shopify/DiscountAutomaticNode/1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:31.592Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1276430549170","count":3}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:32.028Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006759090","title":"The Collection Snowboard: Liquid"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:32.739Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006628018","title":"The Collection Snowboard: Oxygen"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:33.399Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006464178","title":"The Collection Snowboard: Hydrogen"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:33.599Z","message":"Product sync batch completed","total":3,"synced":3,"failed":0,"syncedIds":["gid://shopify/Product/8579006759090","gid://shopify/Product/8579006628018","gid://shopify/Product/8579006464178"],"failedIds":[]}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:33.600Z","message":"Product sync completed","total":3,"synced":3,"failed":0}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:34.539Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:34.562Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006759090","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:34.714Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:36.112Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:36.139Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006628018","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:36.600Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1276430549170","fallbackNumericId":"1276430549170","finalId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:36.618Z","message":"Updated metafield rule","discountType":"automatic","title":"buy 1 get 1 half 123","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:37.166Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:37.166Z","message":"Processing discount","title":"buy 1 get 1 half 123","discountId":"gid://shopify/DiscountAutomaticNode/1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:37.693Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1276430549170","count":3}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:38.148Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006759090","title":"The Collection Snowboard: Liquid"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:38.302Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:38.320Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006464178","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:38.780Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006628018","title":"The Collection Snowboard: Oxygen"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:38.828Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:38.828Z","message":"Processed discount update","id":"1276430549170","title":"buy 1 get 1 half 123","type":"automatic","code":"N/A (Automatic)","value":"Buy 1 item, get 1 item at 50% off"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:39.465Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006464178","title":"The Collection Snowboard: Hydrogen"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:39.665Z","message":"Product sync batch completed","total":3,"synced":3,"failed":0,"syncedIds":["gid://shopify/Product/8579006759090","gid://shopify/Product/8579006628018","gid://shopify/Product/8579006464178"],"failedIds":[]}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:39.666Z","message":"Product sync completed","total":3,"synced":3,"failed":0}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:40.662Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:40.685Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006759090","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:42.165Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:42.186Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006628018","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:43.558Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:43.586Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006464178","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:44.094Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:38:44.094Z","message":"Processed discount update","id":"1276430549170","title":"buy 1 get 1 half 123","type":"automatic","code":"N/A (Automatic)","value":"Buy 1 item, get 1 item at 50% off"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:41.015Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:43.170Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1276430549170","fallbackNumericId":"1276430549170","finalId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:43.191Z","message":"Updated metafield rule","discountType":"automatic","title":"buy 1 get 1 half 123","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:43.705Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:43.705Z","message":"Processing discount","title":"buy 1 get 1 half 123","discountId":"gid://shopify/DiscountAutomaticNode/1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:44.146Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1276430549170","count":3}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:44.585Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006759090","title":"The Collection Snowboard: Liquid"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:45.239Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006628018","title":"The Collection Snowboard: Oxygen"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:45.871Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006464178","title":"The Collection Snowboard: Hydrogen"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:46.072Z","message":"Product sync batch completed","total":3,"synced":3,"failed":0,"syncedIds":["gid://shopify/Product/8579006759090","gid://shopify/Product/8579006628018","gid://shopify/Product/8579006464178"],"failedIds":[]}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:46.072Z","message":"Product sync completed","total":3,"synced":3,"failed":0}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:46.968Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:46.989Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006759090","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:48.399Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:48.427Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006628018","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:49.871Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:49.897Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006464178","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:50.413Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:39:50.413Z","message":"Processed discount update","id":"1276430549170","title":"buy 1 get 1 half 123","type":"automatic","code":"N/A (Automatic)","value":"Buy 1 item, get 1 item at 50% off"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:47.961Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:50.208Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1276430549170","fallbackNumericId":"1276430549170","finalId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:50.218Z","message":"Updated metafield rule","discountType":"automatic","title":"buy 1 get 1 half 123","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:50.726Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:50.726Z","message":"Processing discount","title":"buy 1 get 1 half 123","discountId":"gid://shopify/DiscountAutomaticNode/1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:51.139Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1276430549170","count":3}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:51.586Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006759090","title":"The Collection Snowboard: Liquid"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:52.232Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006628018","title":"The Collection Snowboard: Oxygen"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:52.895Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006464178","title":"The Collection Snowboard: Hydrogen"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:53.096Z","message":"Product sync batch completed","total":3,"synced":3,"failed":0,"syncedIds":["gid://shopify/Product/8579006759090","gid://shopify/Product/8579006628018","gid://shopify/Product/8579006464178"],"failedIds":[]}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:53.096Z","message":"Product sync completed","total":3,"synced":3,"failed":0}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:53.931Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:53.956Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006759090","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:55.383Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:55.407Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006628018","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:56.864Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:56.885Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006464178","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:57.398Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:41:57.398Z","message":"Processed discount update","id":"1276430549170","title":"buy 1 get 1 half 123","type":"automatic","code":"N/A (Automatic)","value":"Buy 1 item, get 1 item at 50% off"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:46:54.130Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:46:56.205Z","message":"Missing discount id in extracted data (update) - applied fallback","originalExtractedId":"","nodeIdTail":"1276430549170","fallbackNumericId":"1276430549170","finalId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:46:56.224Z","message":"Updated metafield rule","discountType":"automatic","title":"buy 1 get 1 half 123","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:46:56.671Z","message":"Parsed discount targeting","appliesToAll":false,"productCount":0,"collectionCount":1}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:46:56.671Z","message":"Processing discount","title":"buy 1 get 1 half 123","discountId":"gid://shopify/DiscountAutomaticNode/1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:46:57.158Z","message":"Found affected products","discountGraphqlId":"gid://shopify/DiscountAutomaticNode/1276430549170","count":3}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:46:57.607Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006759090","title":"The Collection Snowboard: Liquid"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:46:58.263Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006628018","title":"The Collection Snowboard: Oxygen"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:46:59.017Z","message":"Product synced successfully","productId":"gid://shopify/Product/8579006464178","title":"The Collection Snowboard: Hydrogen"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:46:59.218Z","message":"Product sync batch completed","total":3,"synced":3,"failed":0,"syncedIds":["gid://shopify/Product/8579006759090","gid://shopify/Product/8579006628018","gid://shopify/Product/8579006464178"],"failedIds":[]}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:46:59.218Z","message":"Product sync completed","total":3,"synced":3,"failed":0}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:47:00.079Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:47:00.100Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006759090","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:47:01.602Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:47:01.625Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006628018","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:47:03.004Z","message":"Updated product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:47:03.028Z","message":"Product associated with discount","productId":"gid://shopify/Product/8579006464178","discountId":"1276430549170"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:47:03.538Z","message":"Updated product metafields","updated":3,"attempted":3}
+{"logger":"webhook.discounts.updated","ts":"2025-09-11T16:47:03.538Z","message":"Processed discount update","id":"1276430549170","title":"buy 1 get 1 half 123","type":"automatic","code":"N/A (Automatic)","value":"Buy 1 item, get 1 item at 50% off"}

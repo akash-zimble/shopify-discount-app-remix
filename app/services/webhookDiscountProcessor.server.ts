@@ -1,15 +1,18 @@
 import prisma from "../db.server";
 import { DiscountProductMatcher } from "./discountProductMatcher.server";
 import { DiscountDataExtractor, normalizeDiscountId } from "./discountDataExtractor.server";
+import { ProductService } from "./productService.server";
 import type { Logger } from "../utils/logger.server";
 
 export class WebhookDiscountProcessor {
   private adminClient: any;
   private logger: Logger;
+  private productService: ProductService;
 
   constructor(adminClient: any, logger: Logger) {
     this.adminClient = adminClient;
     this.logger = logger;
+    this.productService = new ProductService(adminClient, logger);
   }
 
   async processDiscountCreate(payload: any) {
@@ -472,17 +475,49 @@ export class WebhookDiscountProcessor {
 
       this.logger.info("Found affected products", { discountGraphqlId, count: affectedProducts.length });
 
+      // Sync products to our database first
+      let productsToProcess = affectedProducts;
+      if (affectedProducts.length > 0) {
+        const syncResult = await this.productService.syncProducts(affectedProducts);
+        this.logger.info("Product sync completed", { 
+          total: affectedProducts.length, 
+          synced: syncResult.synced, 
+          failed: syncResult.failed 
+        });
+        
+        // Only proceed with products that were successfully synced
+        if (syncResult.synced === 0) {
+          this.logger.warn("No products were synced, skipping metafield updates", { affectedProducts });
+          return;
+        }
+        
+        // Use only successfully synced products
+        productsToProcess = syncResult.syncedIds;
+      }
+
       let updateCount = 0;
-      const maxProducts = Math.min(affectedProducts.length, 10);
+      const maxProducts = Math.min(productsToProcess.length, 10);
 
       for (let i = 0; i < maxProducts; i++) {
         try {
-          const success = await matcher.updateProductMetafield(affectedProducts[i], extractedData);
-          if (success) updateCount++;
+          const success = await matcher.updateProductMetafield(productsToProcess[i], extractedData);
+          if (success) {
+            updateCount++;
+            // Associate product with discount in our database (only if product exists)
+            try {
+              await this.productService.associateProductWithDiscount(productsToProcess[i], extractedData.id);
+            } catch (associationError) {
+              this.logger.warn("Failed to associate product with discount", { 
+                productId: productsToProcess[i], 
+                discountId: extractedData.id,
+                error: associationError instanceof Error ? associationError.message : String(associationError)
+              });
+            }
+          }
           // Increased rate limiting to prevent API throttling
           await new Promise(resolve => setTimeout(resolve, 500));
         } catch (error) {
-          this.logger.error(error as Error, { scope: "updateAffectedProductMetafields", productId: affectedProducts[i], discountId: extractedData.id });
+          this.logger.error(error as Error, { scope: "updateAffectedProductMetafields", productId: productsToProcess[i], discountId: extractedData.id });
           // Continue processing other products even if one fails
         }
       }
@@ -492,7 +527,7 @@ export class WebhookDiscountProcessor {
         await prisma.discountMetafieldRule.updateMany({
           where: { discountId: extractedData.id },
           data: {
-            productsCount: affectedProducts.length,
+            productsCount: productsToProcess.length,
             lastRan: new Date() // NEW: Set lastRan
           }
         });
@@ -524,7 +559,13 @@ export class WebhookDiscountProcessor {
       for (let i = 0; i < maxProducts; i++) {
         try {
           const success = await matcher.removeDiscountFromProduct(productsToProcess[i], discountId);
-          if (success) removalCount++;
+          if (success) {
+            removalCount++;
+            // Remove association from our database
+            await this.productService.removeProductFromDiscount(productsToProcess[i], discountId);
+            // Sync active discounts from Shopify to ensure consistency
+            await this.productService.syncActiveDiscountsFromShopify(productsToProcess[i]);
+          }
           await new Promise(resolve => setTimeout(resolve, 200));
         } catch (error) {
           this.logger.error(error as Error, { scope: "removeFromProductMetafields", productId: productsToProcess[i], discountId });

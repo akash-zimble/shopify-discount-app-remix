@@ -1,0 +1,27 @@
+[
+    {
+        "id": "1276430549170",
+        "title": "buy 1 get 1 half 123",
+        "code": "",
+        "value": {
+            "displayValue": "Buy 1 item, get 1 item at 50% off"
+        },
+        "type": "bxgy",
+        "status": "ACTIVE",
+        "startsAt": "2025-09-11T16:19:12Z",
+        "endsAt": null,
+        "discountType": "automatic",
+        "summary": "Buy 1 item, get 1 item at 50% off",
+        "customerEligibility": "all",
+        "minimumRequirement": {
+            "type": "none"
+        },
+        "appliesTo": "one_time",
+        "details": [
+            "All customers",
+            "Buy 1 item, get 1 item at 50% off",
+            "Active from today",
+            "Buy X Get Y"
+        ]
+    }
+]

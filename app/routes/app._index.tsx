@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData, useFetcher } from "@remix-run/react";
+import { useLoaderData, useFetcher, Link, useNavigate } from "@remix-run/react";
 import type { SerializeFrom } from "@remix-run/node";
 import { Page, Layout, Text, Card, Button, BlockStack, DataTable, Badge, InlineStack, EmptyState, Spinner, Toast, Frame, Banner } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
@@ -221,6 +221,7 @@ type Discount = SerializeFrom<typeof loader>['discounts'][0];
 
 export default function Index() {
   const { discounts } = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
   const fetcher = useFetcher<{ 
     success: boolean; 
     message?: string; 
@@ -280,6 +281,10 @@ export default function Index() {
     );
   };
 
+  const handleRowClick = (discountId: string) => {
+    navigate(`/app/discounts/${discountId}`);
+  };
+
   useEffect(() => {
     if (fetcher.state === 'idle' && fetcher.data) {
       setLoadingId(null);
@@ -315,7 +320,11 @@ export default function Index() {
   }, [fetcher.state, fetcher.data, loadingId]);
 
   const rows = localDiscounts.map(discount => [
-    discount.title,
+    <Link key={discount.discountId} to={`/app/discounts/${discount.discountId}`} style={{ textDecoration: 'none', color: '#0066cc' }}>
+      <Text as="span" variant="bodyMd" fontWeight="semibold">
+        {discount.title}
+      </Text>
+    </Link>,
     discount.type,
     discount.discount,
     discount.products.toString(),
@@ -370,14 +379,7 @@ export default function Index() {
                     heading="No discounts found"
                     image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
                     action={{
-                      content: isInitializing ? (
-                        <InlineStack align="center" gap="100">
-                          <Spinner accessibilityLabel="Initializing" size="small" />
-                          <Text as="span" variant="bodySm">Initializing...</Text>
-                        </InlineStack>
-                      ) : (
-                        "Initialize Discounts"
-                      ),
+                      content: isInitializing ? "Initializing..." : "Initialize Discounts",
                       onAction: handleInitialize,
                       disabled: isInitializing
                     }}
