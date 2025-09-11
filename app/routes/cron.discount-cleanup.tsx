@@ -1,9 +1,9 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { DiscountProductMatcher } from "../services/discountProductMatcher.server";
 import { createLogger } from "../utils/logger.server";
+import { DiscountProductMatcher } from "../services/discountProductMatcher.server";
+import { Session } from "@shopify/shopify-api";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   // Verify this is a legitimate cron request (you can add additional security here)
@@ -66,10 +66,52 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           // Remove from product metafields if we have discount data
           if (discountData.id) {
             try {
-              // Get admin client for product cleanup
-              const { admin } = await authenticate.admin(request);
-              const adminClient = createAdminWrapper(admin);
-              const matcher = new DiscountProductMatcher(adminClient, logger);
+              // Get the most recent session to authenticate with Shopify
+              const session = await prisma.session.findFirst({
+                orderBy: { expires: 'desc' }
+              });
+
+              if (!session) {
+                logger.warn(`No session found, skipping product cleanup for discount ${discountData.id}`);
+                continue;
+              }
+
+              // Create a proper Shopify session object
+              const shopifySession = new Session({
+                id: session.id,
+                shop: session.shop,
+                state: session.state,
+                isOnline: session.isOnline,
+                accessToken: session.accessToken,
+                scope: session.scope || '',
+              });
+
+              // Create admin client that matches the expected interface
+              const adminClient = {
+                graphql: async (query: string, options: any = {}) => {
+                  // Use the stored access token to make GraphQL requests
+                  const response = await fetch(`https://${session.shop}/admin/api/2025-01/graphql.json`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'X-Shopify-Access-Token': session.accessToken,
+                    },
+                    body: JSON.stringify({ query, variables: options.variables || {} })
+                  });
+                  
+                  if (!response.ok) {
+                    throw new Error(`GraphQL request failed: ${response.status} ${response.statusText}`);
+                  }
+                  
+                  // Return a response-like object with a json() method
+                  return {
+                    json: async () => response.json()
+                  };
+                },
+                session: shopifySession
+              };
+
+              const matcher = new DiscountProductMatcher(adminClient as any, logger);
 
               // Get all products and remove this discount
               const allProducts = await matcher.getAllProductIds();
@@ -80,15 +122,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 try {
                   const success = await matcher.removeDiscountFromProduct(allProducts[i], discountData.id);
                   if (success) removalCount++;
-                  await new Promise(resolve => setTimeout(resolve, 200)); // Faster rate limiting for cron
+                  await new Promise(resolve => setTimeout(resolve, 200)); // Rate limiting
                 } catch (error) {
-                  logger.error(`Error removing expired discount from product ${allProducts[i]}`, { error });
+                  logger.error(`Error removing expired discount from product ${allProducts[i]}`, { 
+                    error: error instanceof Error ? error.message : String(error)
+                  });
                 }
               }
 
               logger.info(`Removed expired discount ${discountData.id} from ${removalCount} products`);
             } catch (error) {
-              logger.error(`Error cleaning up expired discount ${discountData.id}`, { error });
+              logger.error(`Error cleaning up expired discount ${discountData.id}`, { 
+                error: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined
+              });
             }
           }
 
@@ -127,10 +174,3 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 };
 
-function createAdminWrapper(admin: any) {
-  return {
-    graphql: async (query: string, options: any = {}) => {
-      return await admin.graphql(query, options);
-    }
-  } as any;
-}
