@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData, Link } from "@remix-run/react";
+import { useLoaderData } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -8,13 +8,8 @@ import {
   BlockStack,
   InlineStack,
   Button,
-  Banner,
-  EmptyState,
   Badge,
-  DataTable,
   ButtonGroup,
-  Icon,
-  Spinner,
   Box,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
@@ -38,12 +33,37 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     const { discountRepository } = createDiscountServiceStack(admin, 'discount-detail');
 
     // Get discount details from database
-    const discount = await errorHandler.withErrorHandling(
+    let discount = await errorHandler.withErrorHandling(
       () => discountRepository.findByDiscountId(discountId),
       { scope: 'loader.findDiscount', discountId }
     );
 
+    // If not found, try alternative ID formats
     if (!discount) {
+      logger.info('Discount not found with original ID, trying alternative formats', { discountId });
+      
+      // Try with gid:// prefix
+      const gidFormat = `gid://shopify/DiscountAutomaticNode/${discountId}`;
+      discount = await errorHandler.withErrorHandling(
+        () => discountRepository.findByDiscountId(gidFormat),
+        { scope: 'loader.findDiscount.gid', discountId: gidFormat }
+      );
+      
+      if (!discount) {
+        // Try extracting numeric part if it's a GraphQL ID
+        const numericId = discountId.includes('/') ? discountId.split('/').pop() : discountId;
+        if (numericId && numericId !== discountId) {
+          logger.info('Trying numeric ID extraction', { originalId: discountId, numericId });
+          discount = await errorHandler.withErrorHandling(
+            () => discountRepository.findByDiscountId(numericId),
+            { scope: 'loader.findDiscount.numeric', discountId: numericId }
+          );
+        }
+      }
+    }
+
+    if (!discount) {
+      logger.error('Discount not found with any ID format', { discountId });
       throw new Response("Discount not found", { status: 404 });
     }
 
@@ -55,16 +75,9 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       logger.warn('Failed to parse discount data', { discountId, error: error instanceof Error ? error.message : String(error) });
     }
 
-    // Get associated products
-    const products = await errorHandler.withErrorHandling(
-      () => productRepository.findProductsForDiscount(discountId),
-      { scope: 'loader.findProducts', discountId }
-    );
-
     return json({
       discount,
       discountData,
-      products,
       freshDiscountDetails: null,
       discountId
     });
@@ -78,7 +91,8 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
 export default function DiscountDetailPage() {
   try {
-    const { discount, discountData, products, freshDiscountDetails, discountId } = useLoaderData<typeof loader>();
+    const { discount, discountData, freshDiscountDetails, discountId } = useLoaderData<typeof loader>();
+    
     
     if (!discount) {
       return (
@@ -212,7 +226,7 @@ export default function DiscountDetailPage() {
                             Value:
                           </Text>
                           <Text as="p" variant="bodyMd">
-                            {discountData.value || 'N/A'}
+                            {discountData.value?.displayValue || discountData.value?.percentage || 'N/A'}
                           </Text>
                         </Box>
                         <Box>
@@ -242,50 +256,6 @@ export default function DiscountDetailPage() {
           </Layout.Section>
         </Layout>
 
-        {/* Products Table */}
-        <Layout>
-          <Layout.Section>
-            <Card>
-              <BlockStack gap="400">
-                <InlineStack align="space-between">
-                  <Text as="h2" variant="headingMd">
-                    Associated Products ({products.length})
-                  </Text>
-                  <Button>Refresh Products</Button>
-                </InlineStack>
-
-                {products.length > 0 ? (
-                  <DataTable
-                    columnContentTypes={['text', 'text', 'text', 'text', 'text', 'text', 'numeric', 'text']}
-                    headings={['Product', 'Handle', 'Status', 'Type', 'Vendor', 'Price', 'Inventory', 'Associated']}
-                    rows={products.map((product: any) => [
-                      product.title,
-                      product.handle,
-                      product.status,
-                      product.productType || 'N/A',
-                      product.vendor || 'N/A',
-                      product.price ? `${product.price} ${product.currencyCode || ''}` : 'N/A',
-                      product.totalInventory || 0,
-                      product.associatedAt ? new Date(product.associatedAt).toLocaleDateString() : 'N/A'
-                    ])}
-                    footerContent={`Showing ${products.length} products`}
-                  />
-                ) : (
-                  <EmptyState
-                    heading="No products associated"
-                    image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                  >
-                    <Text as="p">
-                      This discount is not currently associated with any products.
-                      Products will be automatically associated when the discount is applied.
-                    </Text>
-                    <Button>Sync Products Now</Button>
-                  </EmptyState>
-                )}
-              </BlockStack>
-            </Card>
-          </Layout.Section>
-        </Layout>
 
         {/* Raw Data (for debugging) */}
         {process.env.NODE_ENV === 'development' && (

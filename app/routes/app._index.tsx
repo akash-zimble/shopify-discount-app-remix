@@ -40,12 +40,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         discountData = {};
       }
 
+
       return {
         id: rule.id,
         discountId: rule.discountId,
         title: rule.discountTitle,
         type: rule.discountType === 'automatic' ? 'Automatic discount' : 'Discount code',
-        discount: rule.discountValue || discountData.value?.displayValue || 'Unknown',
+        discount: rule.discountValue || discountData.value?.displayValue || discountData.value?.percentage || 'Unknown',
         products: rule.productsCount || 0,
         status: rule.status || discountData.status || 'Unknown',
         startDate: rule.startDate || (discountData.startsAt ? new Date(discountData.startsAt) : null),
@@ -330,7 +331,9 @@ export default function Index() {
       </Text>
     </Link>,
     discount.type,
-    discount.discount,
+    typeof discount.discount === 'object' && discount.discount !== null 
+      ? (discount.discount as any)?.displayValue || (discount.discount as any)?.percentage || 'Unknown'
+      : discount.discount,
     discount.products.toString(),
     getStatusBadge(discount.status),
     formatDate(discount.startDate),
@@ -366,16 +369,18 @@ export default function Index() {
                   <Text variant="headingMd" as="h2">
                     Discount Management
                   </Text>
-                  {localDiscounts.length > 0 && (
-                    <Button
-                      onClick={handleInitialize}
-                      disabled={isInitializing}
-                      loading={isInitializing}
-                      size="slim"
-                    >
-                      {isInitializing ? "Initializing..." : "Sync All Discounts"}
-                    </Button>
-                  )}
+                  <InlineStack gap="200">
+                    {localDiscounts.length > 0 && (
+                      <Button
+                        onClick={handleInitialize}
+                        disabled={isInitializing}
+                        loading={isInitializing}
+                        size="slim"
+                      >
+                        {isInitializing ? "Initializing..." : "Sync All Discounts"}
+                      </Button>
+                    )}
+                  </InlineStack>
                 </InlineStack>
                 
                 {localDiscounts.length === 0 ? (
