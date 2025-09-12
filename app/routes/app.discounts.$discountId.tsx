@@ -19,10 +19,9 @@ import {
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
-import { ProductService } from "../services/productService.server";
-import { createLogger } from "../utils/logger.server";
+import { createDiscountServiceStack, createServiceLogger } from "../services/service-factory";
+import { ErrorHandlingService } from "../services/error-handling.service";
 import { json } from "@remix-run/node";
-import prisma from "../db.server";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { admin } = await authenticate.admin(request);
@@ -32,11 +31,17 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     throw new Response("Discount not found", { status: 404 });
   }
 
+  const logger = createServiceLogger('discount-detail');
+  const errorHandler = new ErrorHandlingService(logger);
+
   try {
+    const { discountRepository } = createDiscountServiceStack(admin, 'discount-detail');
+
     // Get discount details from database
-    const discount = await prisma.discountMetafieldRule.findFirst({
-      where: { discountId }
-    });
+    const discount = await errorHandler.withErrorHandling(
+      () => discountRepository.findByDiscountId(discountId),
+      { scope: 'loader.findDiscount', discountId }
+    );
 
     if (!discount) {
       throw new Response("Discount not found", { status: 404 });
@@ -47,12 +52,14 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     try {
       discountData = JSON.parse(discount.metafieldValue || '{}');
     } catch (error) {
-      // Failed to parse, use empty object
+      logger.warn('Failed to parse discount data', { discountId, error: error instanceof Error ? error.message : String(error) });
     }
 
     // Get associated products
-    const productService = new ProductService(admin, createLogger({ name: "discount.detail" }));
-    const products = await productService.getProductsForDiscount(discountId);
+    const products = await errorHandler.withErrorHandling(
+      () => productRepository.findProductsForDiscount(discountId),
+      { scope: 'loader.findProducts', discountId }
+    );
 
     return json({
       discount,
@@ -63,7 +70,8 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     });
 
   } catch (error) {
-    console.error("Error in discount detail loader:", error);
+    const appError = errorHandler.handleError(error as Error, { scope: 'loader', discountId });
+    logger.error('Error in discount detail loader', { error: appError.message, context: appError.context });
     throw error;
   }
 };

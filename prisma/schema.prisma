@@ -43,45 +43,6 @@ model DiscountMetafieldRule {
   endDate            DateTime?
   productsCount      Int               @default(0)
   lastRan            DateTime?
-  products           ProductDiscount[]
 
   @@map("discount_metafield_rules")
-}
-
-model Product {
-  id                  String            @id
-  title               String
-  handle              String
-  status              String
-  productType         String?
-  vendor              String?
-  tags                String?
-  createdAt           DateTime
-  updatedAt           DateTime
-  publishedAt         DateTime?
-  description         String?
-  descriptionHtml     String?
-  totalInventory      Int               @default(0)
-  price               String?
-  compareAtPrice      String?
-  currencyCode        String?
-  activeDiscounts     String?           // Only store the active_discounts metafield JSON
-  syncedAt            DateTime          @default(now())
-  lastMetafieldUpdate DateTime?
-  discounts           ProductDiscount[]
-
-  @@map("products")
-}
-
-model ProductDiscount {
-  id         Int                   @id @default(autoincrement())
-  productId  String
-  discountId String
-  createdAt  DateTime              @default(now())
-  updatedAt  DateTime              @updatedAt
-  discount   DiscountMetafieldRule @relation(fields: [discountId], references: [discountId], onDelete: Cascade)
-  product    Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([productId, discountId])
-  @@map("product_discounts")
 }

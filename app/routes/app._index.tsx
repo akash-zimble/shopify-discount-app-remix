@@ -6,44 +6,64 @@ import type { SerializeFrom } from "@remix-run/node";
 import { Page, Layout, Text, Card, Button, BlockStack, DataTable, Badge, InlineStack, EmptyState, Spinner, Toast, Frame, Banner } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
-import prisma from "../db.server";
-import { DiscountProductMatcher } from "../services/discountProductMatcher.server";
-import { WebhookDiscountProcessor } from "../services/webhookDiscountProcessor.server";
-import { createLogger } from "../utils/logger.server";
+import { createDiscountServiceStack, createServiceLogger } from "../services/service-factory";
+import { ErrorHandlingService, AppError } from "../services/error-handling.service";
+import { validationService } from "../services/validation.service";
+
+/**
+ * Optimized route handler following SOLID principles
+ * Separates concerns and uses dependency injection
+ */
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { admin } = await authenticate.admin(request);
+  
+  try {
+    const logger = createServiceLogger('discounts-loader');
+    const errorHandler = new ErrorHandlingService(logger);
+    
+    const { discountRepository } = createDiscountServiceStack(admin, 'discounts-loader');
+    
+    // Fetch all discount rules from database
+    const discountRules = await errorHandler.withErrorHandling(
+      () => discountRepository.findAll(),
+      { scope: 'loader.findAll' }
+    );
 
-  // Fetch all discount rules from database
-  const discountRules = await prisma.discountMetafieldRule.findMany({
-    orderBy: { createdAt: 'desc' }
-  });
+    // Transform the data for the table
+    const discounts = discountRules.map(rule => {
+      let discountData;
+      try {
+        discountData = JSON.parse(rule.metafieldValue);
+      } catch (error) {
+        logger.warn('Failed to parse discount data', { ruleId: rule.id, error: error instanceof Error ? error.message : String(error) });
+        discountData = {};
+      }
 
-  // Transform the data for the table
-  const discounts = discountRules.map(rule => {
-    let discountData;
-    try {
-      discountData = JSON.parse(rule.metafieldValue);
-    } catch {
-      discountData = {};
-    }
+      return {
+        id: rule.id,
+        discountId: rule.discountId,
+        title: rule.discountTitle,
+        type: rule.discountType === 'automatic' ? 'Automatic discount' : 'Discount code',
+        discount: rule.discountValue || discountData.value?.displayValue || 'Unknown',
+        products: rule.productsCount || 0,
+        status: rule.status || discountData.status || 'Unknown',
+        startDate: rule.startDate || (discountData.startsAt ? new Date(discountData.startsAt) : null),
+        endDate: rule.endDate || (discountData.endsAt ? new Date(discountData.endsAt) : null),
+        lastRan: rule.lastRan,
+        isActive: rule.isActive,
+      };
+    });
 
-    return {
-      id: rule.id,
-      discountId: rule.discountId,
-      title: rule.discountTitle,
-      type: rule.discountType === 'automatic' ? 'Automatic discount' : 'Discount code',
-      discount: rule.discountValue || discountData.value?.displayValue || 'Unknown',
-      products: rule.productsCount || 0,
-      status: rule.status || discountData.status || 'Unknown',
-      startDate: rule.startDate || (discountData.startsAt ? new Date(discountData.startsAt) : null),
-      endDate: rule.endDate || (discountData.endsAt ? new Date(discountData.endsAt) : null),
-      lastRan: rule.lastRan,
-      isActive: rule.isActive,
-    };
-  });
-
-  return json({ discounts });
+    return json({ discounts });
+  } catch (error) {
+    const logger = createServiceLogger('discounts-loader');
+    const errorHandler = new ErrorHandlingService(logger);
+    const appError = errorHandler.handleError(error as Error, { scope: 'loader' });
+    
+    // Return error response
+    return json(errorHandler.createErrorResponse(appError), { status: appError.statusCode });
+  }
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -51,57 +71,60 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const action = formData.get('action');
 
-  if (action === 'initialize') {
-    try {
-      console.log('Starting discount initialization...');
-      
-      const logger = createLogger({ name: "manual-initialization" });
-      const adminClient = createAdminWrapper(admin);
-      const processor = new WebhookDiscountProcessor(adminClient, logger);
+  const logger = createServiceLogger('discounts-action');
+  const errorHandler = new ErrorHandlingService(logger);
 
-      const result = await processor.initializeAllDiscounts();
+  try {
+      const { discountService, validationService: validator } = createDiscountServiceStack(admin, 'discounts-action');
+
+    if (action === 'initialize') {
+      logger.info('Starting discount initialization...');
       
-      console.log('Initialization completed:', result);
+      const result = await errorHandler.withErrorHandling(
+        () => discountService.initializeAllDiscounts(),
+        { scope: 'action.initialize' }
+      );
+      
+      logger.info('Initialization completed', { 
+        success: result.success,
+        totalFound: result.totalFound,
+        processed: result.processed,
+        skipped: result.skipped,
+        errors: result.errors
+      });
       
       if (result.success) {
-        return json({ 
-          success: true, 
-          message: `Successfully initialized ${result.processed} discounts. Found ${result.totalFound} total discounts, skipped ${result.skipped} existing ones.`,
+        return json(errorHandler.createSuccessResponse({
           processed: result.processed,
           totalFound: result.totalFound,
           skipped: result.skipped,
-          errors: result.errors
-        });
+          errors: result.errors,
+        }, `Successfully initialized ${result.processed} discounts. Found ${result.totalFound} total discounts, skipped ${result.skipped} existing ones.`));
       } else {
-        return json({ 
-          success: false, 
-          message: "Failed to initialize discounts", 
-          error: result.error 
-        }, { status: 500 });
+        throw new AppError("Failed to initialize discounts", 'INITIALIZATION_FAILED', 500, true, { error: result.error });
       }
-    } catch (error) {
-      console.error("Error during initialization:", error);
-      return json({ 
-        success: false, 
-        message: "Failed to initialize discounts", 
-        error: String(error) 
-      }, { status: 500 });
     }
-  }
 
-  if (action === 'refresh') {
-    const ruleId = formData.get('ruleId') as string;
-    
-    try {
-      console.log(`Refreshing discount rule ${ruleId}...`);
+    if (action === 'refresh') {
+      const ruleId = formData.get('ruleId') as string;
       
-      // Get the existing rule to extract discount data
-      const existingRule = await prisma.discountMetafieldRule.findUnique({
-        where: { id: parseInt(ruleId) }
-      });
+      // Validate input
+      if (!ruleId || isNaN(parseInt(ruleId))) {
+        throw new AppError('Invalid rule ID', 'VALIDATION_ERROR', 400, true);
+      }
+      
+      logger.info(`Refreshing discount rule ${ruleId}...`);
+      
+      const { discountRepository, targetingService, metafieldService } = createDiscountServiceStack(admin, 'discounts-action');
+      
+      // Get the existing rule
+      const existingRule = await errorHandler.withErrorHandling(
+        () => discountRepository.findById(parseInt(ruleId)),
+        { scope: 'action.refresh.findById', ruleId }
+      );
 
       if (!existingRule) {
-        return json({ success: false, message: "Discount rule not found" }, { status: 404 });
+        throw new AppError("Discount rule not found", 'NOT_FOUND', 404, true, { ruleId });
       }
 
       // Parse the stored discount data
@@ -109,118 +132,97 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       try {
         discountData = JSON.parse(existingRule.metafieldValue);
       } catch (error) {
-        console.error("Error parsing stored discount data:", error);
-        return json({ success: false, message: "Invalid discount data" }, { status: 500 });
+        throw new AppError("Invalid discount data", 'INVALID_DATA', 500, true, { ruleId, error: error instanceof Error ? error.message : String(error) });
       }
-
-      const logger = createLogger({ name: "manual-refresh" });
-      const adminClient = createAdminWrapper(admin);
-      const matcher = new DiscountProductMatcher(adminClient, logger);
 
       if (existingRule.isActive && discountData.id) {
-        // ACTIVE DISCOUNT: Update product metafields with current discount data
-        try {
-          // Get affected products and update their metafields
-          const affectedProducts = await matcher.getAffectedProducts(discountData.id);
-          let updateCount = 0;
-          const maxProducts = Math.min(affectedProducts.length, 10); // Limit to prevent timeouts
+        // ACTIVE DISCOUNT: Update product metafields
+        const affectedProducts = await errorHandler.withErrorHandling(
+          () => targetingService.getAffectedProducts(discountData.id),
+          { scope: 'action.refresh.getAffectedProducts', discountId: discountData.id }
+        );
 
-          for (let i = 0; i < maxProducts; i++) {
-            try {
-              const success = await matcher.updateProductMetafield(affectedProducts[i], discountData);
-              if (success) updateCount++;
-              await new Promise(resolve => setTimeout(resolve, 500)); // Rate limiting
-            } catch (error) {
-              console.error(`Error updating product ${affectedProducts[i]}:`, error);
-            }
-          }
+        const result = await errorHandler.withErrorHandling(
+          () => metafieldService.updateMultipleProductMetafields(affectedProducts, discountData),
+          { scope: 'action.refresh.updateMetafields', discountId: discountData.id }
+        );
 
-          // Update the products count in the database
-          await prisma.discountMetafieldRule.update({
-            where: { id: parseInt(ruleId) },
-            data: { 
-              lastRan: new Date(),
-              productsCount: affectedProducts.length
-            }
-          });
+        // Update the products count in the database
+        await errorHandler.withErrorHandling(
+          () => discountRepository.updateProductsCount(discountData.id, affectedProducts.length),
+          { scope: 'action.refresh.updateProductsCount', discountId: discountData.id }
+        );
 
-          console.log(`Updated ${updateCount} product metafields for active discount ${discountData.id}`);
-        } catch (error) {
-          console.error("Error updating product metafields:", error);
-          // Continue with database update even if product updates fail
-        }
+        logger.info(`Updated ${result.successCount} product metafields for active discount ${discountData.id}`);
+        
+        return json(errorHandler.createSuccessResponse({
+          lastRan: new Date().toISOString(),
+          updatedCount: result.successCount,
+        }, "Discount refreshed and product metafields updated"));
       } else if (!existingRule.isActive && discountData.id) {
-        // INACTIVE DISCOUNT: Remove from product metafields to clean up
-        try {
-          console.log(`Cleaning up inactive discount ${discountData.id} from product metafields...`);
-          
-          // Get all products that might have this discount
-          const allProducts = await matcher.getAllProductIds();
-          let removalCount = 0;
-          const maxProducts = Math.min(allProducts.length, 20); // Limit to prevent timeouts
+        // INACTIVE DISCOUNT: Remove from product metafields
+        logger.info(`Cleaning up inactive discount ${discountData.id} from product metafields...`);
+        
+        const allProductIds = await errorHandler.withErrorHandling(
+          () => targetingService.getAllProductIds(),
+          { scope: 'action.refresh.getAllProductIds' }
+        );
 
-          for (let i = 0; i < maxProducts; i++) {
-            try {
-              const success = await matcher.removeDiscountFromProduct(allProducts[i], discountData.id);
-              if (success) removalCount++;
-              await new Promise(resolve => setTimeout(resolve, 500)); // Rate limiting
-            } catch (error) {
-              console.error(`Error removing discount from product ${allProducts[i]}:`, error);
-            }
-          }
+        const result = await errorHandler.withErrorHandling(
+          () => metafieldService.removeDiscountFromMultipleProducts(allProductIds, discountData.id),
+          { scope: 'action.refresh.removeMetafields', discountId: discountData.id }
+        );
 
-          // Update the database
-          await prisma.discountMetafieldRule.update({
-            where: { id: parseInt(ruleId) },
-            data: { 
-              lastRan: new Date(),
-              productsCount: 0 // Set to 0 since discount is inactive
-            }
-          });
+        // Update the database
+        await errorHandler.withErrorHandling(
+          () => discountRepository.updateProductsCount(discountData.id, 0),
+          { scope: 'action.refresh.updateProductsCount', discountId: discountData.id }
+        );
 
-          console.log(`Removed inactive discount ${discountData.id} from ${removalCount} product metafields`);
-        } catch (error) {
-          console.error("Error removing discount from product metafields:", error);
-          // Continue with database update even if product updates fail
-        }
+        logger.info(`Removed inactive discount ${discountData.id} from ${result.successCount} product metafields`);
+        
+        return json(errorHandler.createSuccessResponse({
+          lastRan: new Date().toISOString(),
+          removedCount: result.successCount,
+        }, "Inactive discount cleaned up from product metafields"));
       } else {
         // No discount ID or other edge case - just update timestamp
-        await prisma.discountMetafieldRule.update({
-          where: { id: parseInt(ruleId) },
-          data: { lastRan: new Date() }
-        });
+        await errorHandler.withErrorHandling(
+          () => discountRepository.update(existingRule.id, { lastRan: new Date() }),
+          { scope: 'action.refresh.updateTimestamp', ruleId }
+        );
+        
+        return json(errorHandler.createSuccessResponse({
+          lastRan: new Date().toISOString(),
+        }, "Discount rule timestamp updated"));
       }
-      
-      const actionType = existingRule.isActive ? "updated" : "cleaned up";
-      console.log(`Successfully ${actionType} discount rule ${ruleId}`);
-      return json({ 
-        success: true, 
-        message: existingRule.isActive 
-          ? "Discount refreshed and product metafields updated" 
-          : "Inactive discount cleaned up from product metafields", 
-        lastRan: new Date().toISOString() 
-      });
-    } catch (error) {
-      console.error("Error refreshing discount:", error);
-      return json({ success: false, message: "Failed to refresh discount", error: String(error) }, { status: 500 });
     }
-  }
 
-  return json({ success: false });
+    throw new AppError("Invalid action", 'INVALID_ACTION', 400, true, { action });
+  } catch (error) {
+    const appError = errorHandler.handleError(error as Error, { scope: 'action', action });
+    return json(errorHandler.createErrorResponse(appError), { status: appError.statusCode });
+  }
 };
 
-function createAdminWrapper(admin: any) {
-  return {
-    graphql: async (query: string, options: any = {}) => {
-      return await admin.graphql(query, options);
-    }
-  } as any;
-}
-
-type Discount = SerializeFrom<typeof loader>['discounts'][0];
+type LoaderData = SerializeFrom<typeof loader>;
+type Discount = {
+  id: number;
+  discountId: string;
+  title: string;
+  type: string;
+  discount: any;
+  products: number;
+  status: any;
+  startDate: Date | null;
+  endDate: Date | null;
+  lastRan: Date | null;
+  isActive: boolean;
+};
 
 export default function Index() {
-  const { discounts } = useLoaderData<typeof loader>();
+  const loaderData = useLoaderData<typeof loader>();
+  const discounts: Discount[] = 'discounts' in loaderData ? loaderData.discounts as Discount[] : [];
   const navigate = useNavigate();
   const fetcher = useFetcher<{ 
     success: boolean; 
@@ -231,6 +233,8 @@ export default function Index() {
     totalFound?: number;
     skipped?: number;
     errors?: number;
+    updatedCount?: number;
+    removedCount?: number;
   }>();
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -296,7 +300,7 @@ export default function Index() {
           setLocalDiscounts(prev => 
             prev.map(discount => 
               discount.id === loadingId 
-                ? { ...discount, lastRan: fetcher.data?.lastRan! }
+                ? { ...discount, lastRan: new Date(fetcher.data?.lastRan!) }
                 : discount
             )
           );
