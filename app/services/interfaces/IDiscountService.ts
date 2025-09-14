@@ -1,4 +1,18 @@
 import { ExtractedDiscountData } from '../discountDataExtractor.server';
+import { DiscountMetafieldRule } from '@prisma/client';
+import { 
+  ProductDiscount, 
+  ProductDiscountInput, 
+  ProductDiscountWithDetails,
+  BulkOperationResult,
+  SyncResult,
+  RelationshipStatistics,
+  ProductWithDiscounts,
+  DiscountWithProducts,
+  ProductDiscountSummary,
+  ProductDiscountResult,
+  DiscountProductResult
+} from '../../types/product-discount.types';
 
 /**
  * Core discount service interface
@@ -34,6 +48,8 @@ export interface IDiscountService {
    * Get a specific discount from Shopify by ID
    */
   getDiscountFromShopify(discountId: string): Promise<ExtractedDiscountData | null>;
+  
+  // NEW: Relationship-aware methods
 }
 
 /**
@@ -64,6 +80,11 @@ export interface IProductMetafieldService {
    * Remove discount from multiple products
    */
   removeDiscountFromMultipleProducts(productIds: string[], discountId: string): Promise<BulkUpdateResult>;
+  
+  /**
+   * Remove discount from product metafields (only products with ProductDiscount relationships)
+   */
+  removeFromProductMetafields(existingRule: any, discountId: string): Promise<void>;
 }
 
 /**
@@ -143,6 +164,11 @@ export interface IProductService {
   getProductById(shopifyId: string): Promise<Product | null>;
   
   /**
+   * Get a specific product by internal database ID
+   */
+  getProductByInternalId(internalId: number): Promise<Product | null>;
+  
+  /**
    * Update product's active discounts
    */
   updateProductActiveDiscounts(shopifyId: string, activeDiscounts: string): Promise<boolean>;
@@ -161,6 +187,11 @@ export interface IProductService {
   processProductCreate(payload: any): Promise<Product>;
   processProductUpdate(payload: any): Promise<Product>;
   processProductDelete(payload: any): Promise<{ deleted: boolean; shopifyId: string }>;
+  
+  // NEW: Relationship-aware methods
+  getProductWithDiscounts(shopifyId: string): Promise<ProductWithDiscounts | null>;
+  updateProductDiscounts(shopifyId: string, discountIds: number[]): Promise<boolean>;
+  getProductDiscountCount(shopifyId: string): Promise<number>;
 }
 
 /**
@@ -179,10 +210,13 @@ export interface Product {
   variantsCount: number;
   imagesCount: number;
   tags?: string;
-  activeDiscounts?: string;
+  activeDiscounts?: string; // Keep for backward compatibility
   createdAt: Date;
   updatedAt: Date;
   lastFetchedAt: Date;
+  
+  // Relationship data (optional for backward compatibility)
+  productDiscounts?: ProductDiscount[];
 }
 
 /**
@@ -197,3 +231,41 @@ export interface ProductFetchResult {
   error?: string;
   products?: Product[];
 }
+
+/**
+ * ProductDiscount service interface
+ */
+export interface IProductDiscountService {
+  // Core relationship management
+  createRelationship(productId: number, discountId: number): Promise<ProductDiscount>;
+  removeRelationship(productId: number, discountId: number): Promise<boolean>;
+  toggleRelationship(productId: number, discountId: number): Promise<ProductDiscount | null>;
+  
+  // Bulk operations
+  createBulkRelationships(relationships: ProductDiscountInput[]): Promise<BulkOperationResult>;
+  removeBulkRelationships(relationships: ProductDiscountInput[]): Promise<BulkOperationResult>;
+  syncProductDiscounts(productId: number, discountIds: number[]): Promise<SyncResult>;
+  syncDiscountProducts(discountId: number, productIds: number[]): Promise<SyncResult>;
+  
+  // Query operations
+  getProductDiscounts(productId: number): Promise<ProductDiscountWithDetails[]>;
+  getDiscountProducts(discountId: number): Promise<ProductDiscountWithDetails[]>;
+  getActiveRelationships(shop?: string): Promise<ProductDiscountWithDetails[]>;
+  
+  // Status management
+  activateProductDiscounts(productId: number): Promise<number>;
+  deactivateProductDiscounts(productId: number): Promise<number>;
+  activateDiscountProducts(discountId: number): Promise<number>;
+  deactivateDiscountProducts(discountId: number): Promise<number>;
+  
+  // Integration with existing services
+  syncWithProductMetafields(productId: number): Promise<boolean>;
+  syncWithDiscountMetafields(discountId: number): Promise<boolean>;
+  
+  // Statistics and reporting
+  getRelationshipStatistics(shop?: string): Promise<RelationshipStatistics>;
+  getProductDiscountCounts(productIds: number[]): Promise<Map<number, number>>;
+  getDiscountProductCounts(discountIds: number[]): Promise<Map<number, number>>;
+}
+
+// Types are now imported from centralized types file

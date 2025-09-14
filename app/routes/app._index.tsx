@@ -10,11 +10,131 @@ import { createDiscountServiceStack, createServiceLogger } from "../services/ser
 import { ErrorHandlingService, AppError } from "../services/error-handling.service";
 import { validationService } from "../services/validation.service";
 import { getStatusBadge, formatDate, formatDateTime } from "../utils/ui.utils";
+import { ProductDiscountSummary } from "../types/product-discount.types";
 
 /**
  * Optimized route handler following SOLID principles
  * Separates concerns and uses dependency injection
  */
+
+/**
+ * Helper function to create ProductDiscount relationships for refresh action
+ */
+async function createProductDiscountRelationshipsForRefresh(
+  affectedProducts: string[], 
+  discountData: any, 
+  productDiscountService: any, 
+  discountRepository: any,
+  productService: any,
+  logger: any
+): Promise<void> {
+  try {
+    // Get the discount rule from database to get the internal ID
+    const discountRule = await discountRepository.findByDiscountId(discountData.id);
+    if (!discountRule) {
+      logger.warn('Discount rule not found in database', { discountId: discountData.id });
+      return;
+    }
+
+    // Convert Shopify product IDs to internal product IDs
+    const productRelationships = [];
+    for (const shopifyProductId of affectedProducts) {
+      try {
+        // Extract numeric ID from Shopify GID format
+        const numericId = shopifyProductId.replace('gid://shopify/Product/', '');
+        
+        // Find the product in our database using Shopify ID
+        logger.info('Looking for product in database', { 
+          shopifyProductId, 
+          numericId, 
+          shop: productService.shop 
+        });
+        
+        const product = await productService.getProductById(numericId);
+        if (product) {
+          logger.info('Found product in database', { 
+            shopifyProductId, 
+            numericId, 
+            internalId: product.id,
+            productTitle: product.title 
+          });
+          productRelationships.push({
+            productId: product.id,
+            discountId: discountRule.id,
+            isActive: true
+          });
+        } else {
+          logger.warn('Product not found in database', { shopifyProductId, numericId });
+        }
+      } catch (error) {
+        logger.error(error as Error, { 
+          scope: 'createProductDiscountRelationshipsForRefresh.productLookup',
+          shopifyProductId 
+        });
+      }
+    }
+
+    if (productRelationships.length > 0) {
+      logger.info('Attempting to create ProductDiscount relationships', {
+        discountId: discountData.id,
+        discountRuleId: discountRule.id,
+        productRelationships: productRelationships
+      });
+      
+      // Create relationships in bulk
+      const result = await productDiscountService.createBulkRelationships(productRelationships);
+      
+      logger.info('Created ProductDiscount relationships for refresh', {
+        discountId: discountData.id,
+        discountRuleId: discountRule.id,
+        created: result.created,
+        skipped: result.skipped,
+        errors: result.errors,
+        errorDetails: result.errorDetails
+      });
+    }
+  } catch (error) {
+    logger.error(error as Error, { 
+      scope: 'createProductDiscountRelationshipsForRefresh',
+      discountId: discountData.id 
+    });
+    throw error;
+  }
+}
+
+/**
+ * Helper function to remove ProductDiscount relationships for inactive discount
+ */
+async function removeProductDiscountRelationshipsForRefresh(
+  discountId: string, 
+  productDiscountService: any, 
+  discountRepository: any,
+  logger: any
+): Promise<void> {
+  try {
+    // Get the discount rule from database to get the internal ID
+    const discountRule = await discountRepository.findByDiscountId(discountId);
+    if (!discountRule) {
+      logger.warn('Discount rule not found in database', { discountId });
+      return;
+    }
+
+    // Remove all relationships for this discount
+    const removedCount = await productDiscountService.deactivateDiscountProducts(discountRule.id);
+    
+    logger.info('Removed ProductDiscount relationships for inactive discount', {
+      discountId,
+      discountRuleId: discountRule.id,
+      removedCount
+    });
+  } catch (error) {
+    logger.error(error as Error, { 
+      scope: 'removeProductDiscountRelationshipsForRefresh',
+      discountId 
+    });
+    throw error;
+  }
+}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
@@ -84,7 +204,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const formData = await request.formData();
     const action = formData.get('action');
     
-    const { discountService, productService, validationService: validator } = createDiscountServiceStack(admin, 'discounts-action', session.shop);
+    const { 
+      discountService, 
+      productDiscountService,
+      productService,
+      discountRepository,
+      validationService: validator 
+    } = createDiscountServiceStack(admin, 'discounts-action', session.shop);
 
     if (action === 'initialize') {
       logger.info('Starting discount initialization...');
@@ -166,25 +292,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         );
 
         try {
-          const allProductIds = await errorHandler.withErrorHandling(
-            () => targetingService.getAllProductIds(),
-            { scope: 'action.refresh.getAllProductIds', discountId: existingRule.discountId }
+          // Use the discount service method that only processes products with ProductDiscount relationships
+          await errorHandler.withErrorHandling(
+            () => discountService.removeFromProductMetafields(existingRule, existingRule.discountId),
+            { scope: 'action.refresh.removeMetafields', discountId: existingRule.discountId }
           );
 
-          if (allProductIds.length > 0) {
-            const result = await errorHandler.withErrorHandling(
-              () => metafieldService.removeDiscountFromMultipleProducts(allProductIds, existingRule.discountId),
-              { scope: 'action.refresh.removeMetafields', discountId: existingRule.discountId }
-            );
+          // Update the products count in the database
+          await errorHandler.withErrorHandling(
+            () => discountRepository.updateProductsCount(existingRule.discountId, 0),
+            { scope: 'action.refresh.updateProductsCount', discountId: existingRule.discountId }
+          );
 
-            // Update the products count in the database
-            await errorHandler.withErrorHandling(
-              () => discountRepository.updateProductsCount(existingRule.discountId, 0),
-              { scope: 'action.refresh.updateProductsCount', discountId: existingRule.discountId }
-            );
-
-            logger.info(`Removed deleted discount ${existingRule.discountId} from ${result.successCount} product metafields`);
-          }
+          logger.info(`Removed deleted discount ${existingRule.discountId} from product metafields and relationships`);
         } catch (metafieldError) {
           logger.error('Failed to clean up metafields for deleted discount', {
             discountId: existingRule.discountId,
@@ -215,15 +335,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const discountData = latestDiscountData || JSON.parse(existingRule.metafieldValue);
 
       if (discountData.status === 'ACTIVE' && discountData.id) {
-        // ACTIVE DISCOUNT: Update product metafields
+        // ACTIVE DISCOUNT: Update product metafields AND create ProductDiscount relationships
         const affectedProducts = await errorHandler.withErrorHandling(
           () => targetingService.getAffectedProducts(discountData.id),
           { scope: 'action.refresh.getAffectedProducts', discountId: discountData.id }
         );
 
+        // Use the updated discountService which now handles both metafields and relationships
         const result = await errorHandler.withErrorHandling(
           () => metafieldService.updateMultipleProductMetafields(affectedProducts, discountData),
           { scope: 'action.refresh.updateMetafields', discountId: discountData.id }
+        );
+
+        // NEW: Create ProductDiscount relationships
+        await errorHandler.withErrorHandling(
+          () => createProductDiscountRelationshipsForRefresh(affectedProducts, discountData, productDiscountService, discountRepository, productService, logger),
+          { scope: 'action.refresh.createRelationships', discountId: discountData.id }
         );
 
         // Update the products count in the database
@@ -232,24 +359,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           { scope: 'action.refresh.updateProductsCount', discountId: discountData.id }
         );
 
-        logger.info(`Updated ${result.successCount} product metafields for active discount ${discountData.id}`);
+        logger.info(`Updated ${result.successCount} product metafields and relationships for active discount ${discountData.id}`);
         
         return json(errorHandler.createSuccessResponse({
           lastRan: new Date().toISOString(),
           updatedCount: result.successCount,
-        }, "Discount refreshed and product metafields updated"));
+        }, "Discount refreshed, product metafields updated, and relationships created"));
       } else if (!existingRule.isActive && discountData.id) {
-        // INACTIVE DISCOUNT: Remove from product metafields
+        // INACTIVE DISCOUNT: Remove from product metafields (only products with relationships)
         logger.info(`Cleaning up inactive discount ${discountData.id} from product metafields...`);
         
-        const allProductIds = await errorHandler.withErrorHandling(
-          () => targetingService.getAllProductIds(),
-          { scope: 'action.refresh.getAllProductIds' }
+        // Use the discount service method that only processes products with ProductDiscount relationships
+        await errorHandler.withErrorHandling(
+          () => discountService.removeFromProductMetafields(existingRule, discountData.id),
+          { scope: 'action.refresh.removeMetafields', discountId: discountData.id }
         );
 
-        const result = await errorHandler.withErrorHandling(
-          () => metafieldService.removeDiscountFromMultipleProducts(allProductIds, discountData.id),
-          { scope: 'action.refresh.removeMetafields', discountId: discountData.id }
+        // NEW: Remove ProductDiscount relationships for inactive discount
+        await errorHandler.withErrorHandling(
+          () => removeProductDiscountRelationshipsForRefresh(discountData.id, productDiscountService, discountRepository, logger),
+          { scope: 'action.refresh.removeRelationships', discountId: discountData.id }
         );
 
         // Update the database
@@ -258,11 +387,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           { scope: 'action.refresh.updateProductsCount', discountId: discountData.id }
         );
 
-        logger.info(`Removed inactive discount ${discountData.id} from ${result.successCount} product metafields`);
+        logger.info(`Removed inactive discount ${discountData.id} from product metafields and relationships`);
         
         return json(errorHandler.createSuccessResponse({
           lastRan: new Date().toISOString(),
-          removedCount: result.successCount,
+          removedCount: 0, // The actual count is logged in the discount service
         }, "Inactive discount cleaned up from product metafields"));
       } else {
         // No discount ID or other edge case - just update timestamp
@@ -313,19 +442,45 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 type LoaderData = SerializeFrom<typeof loader>;
+
+// Enhanced types with relationship data
 type Discount = {
   id: number;
   discountId: string;
   title: string;
   type: string;
   discount: any;
-  products: number;
+  products: number; // Keep for backward compatibility
+  productCount?: number; // NEW: Count of products with this discount
+  productDiscounts?: ProductDiscountSummary[]; // NEW: List of product relationships
   status: any;
   startDate: Date | null;
   endDate: Date | null;
   lastRan: Date | null;
   isActive: boolean;
 };
+
+type Product = {
+  id: number;
+  shopifyId: string;
+  title: string;
+  handle: string;
+  description?: string;
+  productType?: string;
+  vendor?: string;
+  status: string;
+  variantsCount: number;
+  imagesCount: number;
+  tags?: string;
+  activeDiscounts?: string; // Keep for backward compatibility
+  discountCount?: number; // NEW: Count of discounts for this product
+  productDiscounts?: ProductDiscountSummary[]; // NEW: List of discount relationships
+  createdAt: Date;
+  updatedAt: Date;
+  lastFetchedAt: Date;
+};
+
+
 
 export default function Index() {
   const loaderData = useLoaderData<typeof loader>();

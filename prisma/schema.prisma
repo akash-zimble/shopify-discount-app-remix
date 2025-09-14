@@ -45,6 +45,9 @@ model DiscountMetafieldRule {
   productsCount      Int               @default(0)
   lastRan            DateTime?
 
+  // Relationship to ProductDiscount
+  productDiscounts   ProductDiscount[]
+
   @@unique([shop, discountId]) // Ensure discountId is unique per shop
   @@map("discount_metafield_rules")
 }
@@ -62,11 +65,34 @@ model Product {
   variantsCount     Int       @default(0)
   imagesCount       Int       @default(0)
   tags              String?   // JSON array of tags
-  activeDiscounts   String?   // The active discounts metafield data
+  activeDiscounts   String?   // The active discounts metafield data (kept for backward compatibility)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   lastFetchedAt     DateTime  @default(now())
 
+  // Relationship to ProductDiscount
+  productDiscounts  ProductDiscount[]
+
   @@unique([shop, shopifyId]) // Ensure Shopify product ID is unique per shop
   @@map("products")
+}
+
+model ProductDiscount {
+  id          Int      @id @default(autoincrement())
+  productId   Int      // Foreign key to Product
+  discountId  Int      // Foreign key to DiscountMetafieldRule
+  shop        String   @default("unknown") // For multi-store support
+  isActive    Boolean  @default(true)      // Whether this relationship is active
+  createdAt   DateTime @default(now())     // When the relationship was created
+  updatedAt   DateTime @updatedAt          // When it was last updated
+  
+  // Relationships
+  product     Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  discount    DiscountMetafieldRule @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  
+  // Ensure a product can't have the same discount twice
+  @@unique([productId, discountId])
+  // Index for efficient querying
+  @@index([shop, isActive])
+  @@map("product_discounts")
 }

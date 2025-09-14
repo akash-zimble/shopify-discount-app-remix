@@ -84,7 +84,7 @@ export class WebhookHandler {
 
       // Create admin client and service stack
       const admin = this.createAdminClient(session);
-      const { discountService } = createDiscountServiceStack(admin, `webhook.discounts.${this.webhookType}`);
+      const { discountService } = createDiscountServiceStack(admin, `webhook.discounts.${this.webhookType}`, shop);
 
       // Process the webhook with the provided function
       const result = await this.errorHandler.withErrorHandling(

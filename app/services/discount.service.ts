@@ -1,8 +1,9 @@
-import { IDiscountService, InitializationResult } from './interfaces/IDiscountService';
+import { IDiscountService, InitializationResult, IProductService } from './interfaces/IDiscountService';
 import { IAdminClient } from './interfaces/IAdminClient';
 import { IDiscountRepository } from './interfaces/IRepository';
 import { IDiscountTargetingService } from './interfaces/IDiscountService';
 import { IProductMetafieldService } from './interfaces/IDiscountService';
+import { IProductDiscountService } from './interfaces/IDiscountService';
 import { Logger } from '../utils/logger.server';
 import { validationService } from './validation.service';
 import { DiscountDataExtractor, normalizeDiscountId, ExtractedDiscountData } from './discountDataExtractor.server';
@@ -18,6 +19,8 @@ export class DiscountService implements IDiscountService {
     private discountRepository: IDiscountRepository,
     private targetingService: IDiscountTargetingService,
     private metafieldService: IProductMetafieldService,
+    private productDiscountService: IProductDiscountService,
+    private productService: IProductService,
     private logger: Logger
   ) {}
 
@@ -612,12 +615,16 @@ export class DiscountService implements IDiscountService {
       this.logger.info('Found affected products', { discountGraphqlId, count: affectedProducts.length });
 
       if (affectedProducts.length > 0) {
+        // Update product metafields (existing functionality)
         const result = await this.metafieldService.updateMultipleProductMetafields(affectedProducts, extractedData);
         
         // Update the products count in the database
         await this.discountRepository.updateProductsCount(extractedData.id, affectedProducts.length);
 
-        this.logger.info('Updated product metafields', {
+        // NEW: Create ProductDiscount relationships
+        await this.createProductDiscountRelationships(affectedProducts, extractedData);
+
+        this.logger.info('Updated product metafields and relationships', {
           updated: result.successCount,
           attempted: result.totalProcessed,
           discountId: extractedData.id,
@@ -629,26 +636,188 @@ export class DiscountService implements IDiscountService {
     }
   }
 
-  private async removeFromProductMetafields(existingRule: any, discountId: string): Promise<void> {
+  async removeFromProductMetafields(existingRule: any, discountId: string): Promise<void> {
     try {
-      const affectedProducts = await this.targetingService.getAffectedProducts(discountId);
-      const allProductIds = await this.targetingService.getAllProductIds();
-      const productsToProcess = affectedProducts.length > 0 ? affectedProducts : allProductIds;
+      // First, get the discount rule to get the internal ID
+      const discountRule = await this.discountRepository.findByDiscountId(discountId);
+      if (!discountRule) {
+        this.logger.warn('Discount rule not found in database', { discountId });
+        return;
+      }
 
-      if (productsToProcess.length > 0) {
-        const result = await this.metafieldService.removeDiscountFromMultipleProducts(productsToProcess, discountId);
+      // Get products that have ProductDiscount relationships with this discount
+      const productDiscountRelationships = await this.productDiscountService.getDiscountProducts(discountRule.id);
+      
+      this.logger.info('Found ProductDiscount relationships for discount', { 
+        discountId, 
+        discountRuleId: discountRule.id, 
+        relationshipsCount: productDiscountRelationships.length 
+      });
+      
+      if (productDiscountRelationships.length === 0) {
+        this.logger.info('No ProductDiscount relationships found for discount', { discountId, discountRuleId: discountRule.id });
+        return;
+      }
+
+      // Convert internal product IDs to Shopify product GIDs
+      const shopifyProductIds = [];
+      for (const relationship of productDiscountRelationships) {
+        try {
+          const product = await this.productService.getProductByInternalId(relationship.productId);
+          if (product) {
+            shopifyProductIds.push(`gid://shopify/Product/${product.shopifyId}`);
+          }
+        } catch (error) {
+          this.logger.error(error as Error, { 
+            scope: 'DiscountService.removeFromProductMetafields.productLookup',
+            productId: relationship.productId 
+          });
+        }
+      }
+
+      this.logger.info('Converted ProductDiscount relationships to Shopify product IDs', { 
+        discountId, 
+        relationshipsCount: productDiscountRelationships.length,
+        shopifyProductIdsCount: shopifyProductIds.length,
+        shopifyProductIds: shopifyProductIds
+      });
+
+      if (shopifyProductIds.length > 0) {
+        // Remove from product metafields (only for products with relationships)
+        const result = await this.metafieldService.removeDiscountFromMultipleProducts(shopifyProductIds, discountId);
         
-        this.logger.info('Removed discount from products', {
+        // Remove ProductDiscount relationships
+        await this.removeProductDiscountRelationships(discountId);
+        
+        this.logger.info('Removed discount from products and relationships', {
           removed: result.successCount,
           attempted: result.totalProcessed,
           discountId,
+          relationshipsFound: productDiscountRelationships.length,
+          productsProcessed: shopifyProductIds.length
         });
-
       }
     } catch (error) {
       this.logger.error(error as Error, { scope: 'DiscountService.removeFromProductMetafields', discountId });
     }
   }
+
+  /**
+   * Create ProductDiscount relationships for affected products
+   */
+  private async createProductDiscountRelationships(affectedProducts: string[], extractedData: ExtractedDiscountData): Promise<void> {
+    try {
+      // Get the discount rule from database to get the internal ID
+      const discountRule = await this.discountRepository.findByDiscountId(extractedData.id);
+      if (!discountRule) {
+        this.logger.warn('Discount rule not found in database', { discountId: extractedData.id });
+        return;
+      }
+
+      // Get existing ProductDiscount relationships for this discount
+      const existingRelationships = await this.productDiscountService.getDiscountProducts(discountRule.id);
+
+      if (existingRelationships.length > 0) {
+        // Case 1: Existing discount - reactivate existing relationships
+        const productRelationships = existingRelationships.map(rel => ({
+          productId: rel.productId,
+          discountId: rel.discountId,
+          isActive: true
+        }));
+        
+        const result = await this.productDiscountService.createBulkRelationships(productRelationships);
+        
+        this.logger.info('Reactivated ProductDiscount relationships', {
+          discountId: extractedData.id,
+          discountRuleId: discountRule.id,
+          updated: result.updated,
+          skipped: result.skipped,
+          errors: result.errors
+        });
+      } else {
+        // Case 2: New discount - create new relationships from affected products
+        const productRelationships = [];
+        for (const shopifyProductId of affectedProducts) {
+          try {
+            const numericId = shopifyProductId.replace('gid://shopify/Product/', '');
+            const product = await this.productService.getProductById(numericId);
+            if (product) {
+              productRelationships.push({
+                productId: product.id,
+                discountId: discountRule.id,
+                isActive: true
+              });
+            }
+          } catch (error) {
+            this.logger.error(error as Error, { 
+              scope: 'DiscountService.createProductDiscountRelationships.productLookup',
+              shopifyProductId 
+            });
+          }
+        }
+
+        if (productRelationships.length > 0) {
+          const result = await this.productDiscountService.createBulkRelationships(productRelationships);
+          
+          this.logger.info('Created new ProductDiscount relationships', {
+            discountId: extractedData.id,
+            discountRuleId: discountRule.id,
+            created: result.created,
+            updated: result.updated,
+            skipped: result.skipped,
+            errors: result.errors
+          });
+        }
+      }
+    } catch (error) {
+      this.logger.error(error as Error, { 
+        scope: 'DiscountService.createProductDiscountRelationships',
+        discountId: extractedData.id 
+      });
+    }
+  }
+
+  /**
+   * Remove ProductDiscount relationships for affected products
+   */
+  private async removeProductDiscountRelationships(discountId: string): Promise<void> {
+    try {
+      // Get the discount rule from database to get the internal ID
+      const discountRule = await this.discountRepository.findByDiscountId(discountId);
+      if (!discountRule) {
+        this.logger.warn('Discount rule not found in database', { discountId });
+        return;
+      }
+
+      // Get existing ProductDiscount relationships for this discount
+      const existingRelationships = await this.productDiscountService.getDiscountProducts(discountRule.id);
+
+      if (existingRelationships.length > 0) {
+        // Convert to the format expected by removeBulkRelationships
+        const productRelationships = existingRelationships.map(rel => ({
+          productId: rel.productId,
+          discountId: rel.discountId
+        }));
+        
+        // Remove relationships in bulk
+        const result = await this.productDiscountService.removeBulkRelationships(productRelationships);
+        
+        this.logger.info('Deactivated ProductDiscount relationships', {
+          discountId,
+          discountRuleId: discountRule.id,
+          deactivated: result.updated,
+          skipped: result.skipped,
+          errors: result.errors
+        });
+      }
+    } catch (error) {
+      this.logger.error(error as Error, { 
+        scope: 'DiscountService.removeProductDiscountRelationships',
+        discountId 
+      });
+    }
+  }
+
 
   /**
    * Get a specific discount from Shopify by ID

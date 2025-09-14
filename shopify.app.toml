@@ -2,7 +2,7 @@
 
 client_id = "1e230754459dc2aec3bc6f7d355989bd"
 name = "discount-remix-akash"
-application_url = "https://somebody-donors-senegal-partly.trycloudflare.com"
+application_url = "https://antique-priority-synthesis-included.trycloudflare.com"
 embedded = true
 handle = "discount-remix-akash"
 
@@ -48,7 +48,7 @@ api_version = "2025-07"
 scopes = "write_products,read_discounts,read_metaobjects,write_metaobjects"
 
 [auth]
-redirect_urls = ["https://somebody-donors-senegal-partly.trycloudflare.com/auth/callback", "https://somebody-donors-senegal-partly.trycloudflare.com/auth/shopify/callback", "https://somebody-donors-senegal-partly.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://antique-priority-synthesis-included.trycloudflare.com/auth/callback", "https://antique-priority-synthesis-included.trycloudflare.com/auth/shopify/callback", "https://antique-priority-synthesis-included.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false

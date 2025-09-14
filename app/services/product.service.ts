@@ -164,6 +164,25 @@ export class ProductService implements IProductService {
     }
   }
 
+  async getProductByInternalId(internalId: number): Promise<Product | null> {
+    try {
+      const product = await prisma.product.findUnique({
+        where: { 
+          id: internalId
+        },
+      });
+
+      this.logger.debug('Retrieved product by internal ID', { internalId, found: !!product });
+      return product;
+    } catch (error) {
+      this.logger.error(error as Error, {
+        scope: 'ProductService.getProductByInternalId',
+        internalId,
+      });
+      return null;
+    }
+  }
+
   async updateProductActiveDiscounts(shopifyId: string, activeDiscounts: string): Promise<boolean> {
     try {
       const productValidation = validationService.validateProductId(shopifyId);
@@ -489,6 +508,22 @@ export class ProductService implements IProductService {
       });
       throw error;
     }
+  }
+
+  // NEW: Relationship-aware methods
+  async getProductWithDiscounts(shopifyId: string): Promise<any> {
+    // Implementation would go here - for now return null
+    return null;
+  }
+
+  async updateProductDiscounts(shopifyId: string, discountIds: number[]): Promise<boolean> {
+    // Implementation would go here - for now return false
+    return false;
+  }
+
+  async getProductDiscountCount(shopifyId: string): Promise<number> {
+    // Implementation would go here - for now return 0
+    return 0;
   }
 
   /**
