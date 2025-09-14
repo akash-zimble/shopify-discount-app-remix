@@ -1,7 +1,7 @@
 import { Logger, createLogger } from '../utils/logger.server';
 import { IAdminClient } from './interfaces/IAdminClient';
 import { IDiscountRepository } from './interfaces/IRepository';
-import { IDiscountService, IDiscountTargetingService, IProductMetafieldService } from './interfaces/IDiscountService';
+import { IDiscountService, IDiscountTargetingService, IProductMetafieldService, IProductService } from './interfaces/IDiscountService';
 import { IValidationService, IConfigurationService } from './interfaces/IValidationService';
 
 // Service implementations
@@ -10,6 +10,7 @@ import { DiscountRepository } from './repositories/discount.repository';
 import { DiscountService } from './discount.service';
 import { DiscountTargetingService } from './discount-targeting.service';
 import { ProductMetafieldService } from './product-metafield.service';
+import { ProductService } from './product.service';
 import { ValidationService } from './validation.service';
 import { ConfigurationService } from './configuration.service';
 
@@ -23,12 +24,13 @@ export function createServiceLogger(name: string): Logger {
   return createLogger({ name, level: logLevel as any });
 }
 
-export function createDiscountServiceStack(admin: any, loggerName: string = 'discount-service'): {
+export function createDiscountServiceStack(admin: any, loggerName: string = 'discount-service', shop?: string): {
   discountService: IDiscountService;
   adminClient: IAdminClient;
   discountRepository: IDiscountRepository;
   targetingService: IDiscountTargetingService;
   metafieldService: IProductMetafieldService;
+  productService: IProductService;
   validationService: IValidationService;
   configurationService: IConfigurationService;
   logger: Logger;
@@ -37,9 +39,10 @@ export function createDiscountServiceStack(admin: any, loggerName: string = 'dis
   
   // Create services with proper dependency injection
   const adminClient = new AdminClientService(admin, logger);
-  const discountRepository = new DiscountRepository(logger);
+  const discountRepository = new DiscountRepository(logger, shop);
   const targetingService = new DiscountTargetingService(adminClient, logger);
   const metafieldService = new ProductMetafieldService(adminClient, logger);
+  const productService = new ProductService(adminClient, logger, shop || 'unknown');
   const discountService = new DiscountService(
     adminClient,
     discountRepository,
@@ -54,6 +57,7 @@ export function createDiscountServiceStack(admin: any, loggerName: string = 'dis
     discountRepository,
     targetingService,
     metafieldService,
+    productService,
     validationService,
     configurationService,
     logger,

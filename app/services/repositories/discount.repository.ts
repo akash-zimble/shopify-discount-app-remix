@@ -8,7 +8,7 @@ import { Logger } from '../../utils/logger.server';
  * Handles all database operations for discount metafield rules
  */
 export class DiscountRepository implements IDiscountRepository {
-  constructor(private logger: Logger) {}
+  constructor(private logger: Logger, private shop?: string) {}
 
   async findById(id: number): Promise<DiscountMetafieldRule | null> {
     try {
@@ -24,10 +24,11 @@ export class DiscountRepository implements IDiscountRepository {
   async findAll(): Promise<DiscountMetafieldRule[]> {
     try {
       return await prisma.discountMetafieldRule.findMany({
+        where: this.shop ? { shop: this.shop } : {},
         orderBy: { createdAt: 'desc' },
       });
     } catch (error) {
-      this.logger.error(error as Error, { scope: 'DiscountRepository.findAll' });
+      this.logger.error(error as Error, { scope: 'DiscountRepository.findAll', shop: this.shop });
       throw error;
     }
   }
@@ -36,6 +37,7 @@ export class DiscountRepository implements IDiscountRepository {
     try {
       return await prisma.discountMetafieldRule.create({
         data: {
+          shop: this.shop || 'unknown',
           discountId: data.discountId!,
           discountType: data.discountType!,
           discountTitle: data.discountTitle!,
@@ -53,7 +55,7 @@ export class DiscountRepository implements IDiscountRepository {
         },
       });
     } catch (error) {
-      this.logger.error(error as Error, { scope: 'DiscountRepository.create', data });
+      this.logger.error(error as Error, { scope: 'DiscountRepository.create', data, shop: this.shop });
       throw error;
     }
   }

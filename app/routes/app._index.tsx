@@ -17,13 +17,13 @@ import { getStatusBadge, formatDate, formatDateTime } from "../utils/ui.utils";
  */
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   
   try {
     const logger = createServiceLogger('discounts-loader');
     const errorHandler = new ErrorHandlingService(logger);
     
-    const { discountRepository } = createDiscountServiceStack(admin, 'discounts-loader');
+    const { discountRepository, productService } = createDiscountServiceStack(admin, 'discounts-loader', session.shop);
     
     // Fetch all discount rules from database
     const discountRules = await errorHandler.withErrorHandling(
@@ -57,7 +57,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       };
     });
 
-    return json({ discounts });
+    // Get products count
+    const productsCount = await errorHandler.withErrorHandling(
+      () => productService.getProductsCount(),
+      { scope: 'loader.getProductsCount' }
+    );
+
+    return json({ discounts, productsCount });
   } catch (error) {
     const logger = createServiceLogger('discounts-loader');
     const errorHandler = new ErrorHandlingService(logger);
@@ -73,12 +79,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const errorHandler = new ErrorHandlingService(logger);
 
   try {
-    const { admin } = await authenticate.admin(request);
+    const { admin, session } = await authenticate.admin(request);
     
     const formData = await request.formData();
     const action = formData.get('action');
     
-    const { discountService, validationService: validator } = createDiscountServiceStack(admin, 'discounts-action');
+    const { discountService, productService, validationService: validator } = createDiscountServiceStack(admin, 'discounts-action', session.shop);
 
     if (action === 'initialize') {
       logger.info('Starting discount initialization...');
@@ -271,6 +277,34 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
     }
 
+    if (action === 'fetchProducts') {
+      logger.info('Starting product fetching...');
+      
+      const result = await errorHandler.withErrorHandling(
+        () => productService.fetchAndSaveAllProducts(),
+        { scope: 'action.fetchProducts' }
+      );
+      
+      logger.info('Product fetching completed', { 
+        success: result.success,
+        totalFound: result.totalFound,
+        processed: result.processed,
+        skipped: result.skipped,
+        errors: result.errors
+      });
+      
+      if (result.success) {
+        return json(errorHandler.createSuccessResponse({
+          processed: result.processed,
+          totalFound: result.totalFound,
+          skipped: result.skipped,
+          errors: result.errors,
+        }, `Successfully fetched ${result.processed} products. Found ${result.totalFound} total products, skipped ${result.skipped} existing ones.`));
+      } else {
+        throw new AppError("Failed to fetch products", 'PRODUCT_FETCH_FAILED', 500, true, { error: result.error });
+      }
+    }
+
     throw new AppError("Invalid action", 'INVALID_ACTION', 400, true, { action });
   } catch (error) {
     const appError = errorHandler.handleError(error as Error, { scope: 'action', action });
@@ -296,6 +330,7 @@ type Discount = {
 export default function Index() {
   const loaderData = useLoaderData<typeof loader>();
   const discounts: Discount[] = 'discounts' in loaderData ? loaderData.discounts as Discount[] : [];
+  const productsCount: number = 'productsCount' in loaderData ? loaderData.productsCount as number : 0;
   const navigate = useNavigate();
   const fetcher = useFetcher<{ 
     success: boolean; 
@@ -312,6 +347,7 @@ export default function Index() {
   }>();
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [isFetchingProducts, setIsFetchingProducts] = useState(false);
   const [localDiscounts, setLocalDiscounts] = useState<Discount[]>(discounts);
   const [toastProps, setToastProps] = useState<{
     content: string;
@@ -335,6 +371,14 @@ export default function Index() {
     );
   };
 
+  const handleFetchProducts = () => {
+    setIsFetchingProducts(true);
+    fetcher.submit(
+      { action: 'fetchProducts' },
+      { method: 'post' }
+    );
+  };
+
   const handleRowClick = (discountId: string) => {
     navigate(`/app/discounts/${discountId}`);
   };
@@ -343,6 +387,7 @@ export default function Index() {
     if (fetcher.state === 'idle' && fetcher.data) {
       setLoadingId(null);
       setIsInitializing(false);
+      setIsFetchingProducts(false);
       
       if (fetcher.data.success) {
         if (fetcher.data.lastRan) {
@@ -355,7 +400,7 @@ export default function Index() {
             )
           );
         } else if (fetcher.data.processed !== undefined) {
-          // This is an initialization response - reload the page to show new discounts
+          // This is an initialization or product fetch response - reload the page to show updated data
           window.location.reload();
         }
         
@@ -415,10 +460,23 @@ export default function Index() {
             <Card>
               <BlockStack gap="400">
                 <InlineStack align="space-between">
-                  <Text variant="headingMd" as="h2">
-                    Discount Management
-                  </Text>
+                  <BlockStack gap="100">
+                    <Text variant="headingMd" as="h2">
+                      Discount Management
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      {productsCount} products in database
+                    </Text>
+                  </BlockStack>
                   <InlineStack gap="200">
+                    <Button
+                      onClick={handleFetchProducts}
+                      disabled={isFetchingProducts}
+                      loading={isFetchingProducts}
+                      size="slim"
+                    >
+                      {isFetchingProducts ? "Fetching Products..." : "Fetch Products"}
+                    </Button>
                     {localDiscounts.length > 0 && (
                       <Button
                         onClick={handleInitialize}
@@ -441,11 +499,16 @@ export default function Index() {
                       onAction: handleInitialize,
                       disabled: isInitializing
                     }}
+                    secondaryAction={{
+                      content: isFetchingProducts ? "Fetching Products..." : "Fetch Products",
+                      onAction: handleFetchProducts,
+                      disabled: isFetchingProducts
+                    }}
                   >
                     <p>
                       {isInitializing 
                         ? "Fetching all existing discounts from your store and setting up metafields..."
-                        : "Click 'Initialize Discounts' to fetch all existing discounts from your store and set up the necessary metafields for tracking."
+                        : "Click 'Initialize Discounts' to fetch all existing discounts from your store and set up the necessary metafields for tracking. You can also fetch all products to see which ones have discount metafields."
                       }
                     </p>
                   </EmptyState>

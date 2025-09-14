@@ -27,7 +27,8 @@ model Session {
 
 model DiscountMetafieldRule {
   id                 Int               @id @default(autoincrement())
-  discountId         String            @unique
+  shop               String            @default("unknown") // Store identifier for multi-store support
+  discountId         String            // Unique within a shop
   discountType       String
   discountTitle      String
   metafieldNamespace String
@@ -44,5 +45,28 @@ model DiscountMetafieldRule {
   productsCount      Int               @default(0)
   lastRan            DateTime?
 
+  @@unique([shop, discountId]) // Ensure discountId is unique per shop
   @@map("discount_metafield_rules")
+}
+
+model Product {
+  id                Int       @id @default(autoincrement())
+  shop              String    @default("unknown") // Store identifier for multi-store support
+  shopifyId         String    @default("unknown") // Shopify product ID (e.g., "8579006202034")
+  title             String
+  handle            String
+  description       String?
+  productType       String?
+  vendor            String?
+  status            String    @default("ACTIVE")
+  variantsCount     Int       @default(0)
+  imagesCount       Int       @default(0)
+  tags              String?   // JSON array of tags
+  activeDiscounts   String?   // The active discounts metafield data
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastFetchedAt     DateTime  @default(now())
+
+  @@unique([shop, shopifyId]) // Ensure Shopify product ID is unique per shop
+  @@map("products")
 }

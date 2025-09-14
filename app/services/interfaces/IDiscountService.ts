@@ -122,3 +122,73 @@ export interface ProductMetafieldUpdate {
   success: boolean;
   error?: string;
 }
+
+/**
+ * Product service interface
+ */
+export interface IProductService {
+  /**
+   * Fetch all products from Shopify and save to database
+   */
+  fetchAndSaveAllProducts(): Promise<ProductFetchResult>;
+  
+  /**
+   * Get all products from database
+   */
+  getAllProducts(): Promise<Product[]>;
+  
+  /**
+   * Get a specific product by Shopify ID from database
+   */
+  getProductById(shopifyId: string): Promise<Product | null>;
+  
+  /**
+   * Update product's active discounts
+   */
+  updateProductActiveDiscounts(shopifyId: string, activeDiscounts: string): Promise<boolean>;
+  
+  /**
+   * Get products count from database
+   */
+  getProductsCount(): Promise<number>;
+  
+  /**
+   * Sync a single product from Shopify to database
+   */
+  syncProductFromShopify(shopifyId: string): Promise<boolean>;
+}
+
+/**
+ * Product data structure
+ */
+export interface Product {
+  id: number;
+  shop: string;
+  shopifyId: string;
+  title: string;
+  handle: string;
+  description?: string;
+  productType?: string;
+  vendor?: string;
+  status: string;
+  variantsCount: number;
+  imagesCount: number;
+  tags?: string;
+  activeDiscounts?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  lastFetchedAt: Date;
+}
+
+/**
+ * Product fetch result
+ */
+export interface ProductFetchResult {
+  success: boolean;
+  totalFound: number;
+  processed: number;
+  skipped: number;
+  errors: number;
+  error?: string;
+  products?: Product[];
+}
