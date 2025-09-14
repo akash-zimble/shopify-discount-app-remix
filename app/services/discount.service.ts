@@ -667,5 +667,51 @@ export class DiscountService implements IDiscountService {
     }
   }
 
+  /**
+   * Get a specific discount from Shopify by ID
+   */
+  async getDiscountFromShopify(discountId: string): Promise<ExtractedDiscountData | null> {
+    try {
+      this.logger.info('Fetching specific discount from Shopify', { discountId });
+
+      // Normalize the discount ID to ensure it's in the correct format
+      const normalizedId = normalizeDiscountId(discountId);
+      if (!normalizedId) {
+        this.logger.error('Invalid discount ID format', { discountId });
+        return null;
+      }
+
+      // Build the GraphQL ID
+      const graphqlId = normalizedId.startsWith('gid://') ? normalizedId : `gid://shopify/DiscountNode/${normalizedId}`;
+
+      // Fetch the discount details
+      const fullDiscountDetails = await this.fetchFullDiscountDetails(graphqlId);
+      
+      if (!fullDiscountDetails?.discount) {
+        this.logger.warn('Discount not found in Shopify', { discountId, graphqlId });
+        return null;
+      }
+
+      // Extract structured data from the full details
+      const extractedData = DiscountDataExtractor.extractFromFullDetails(fullDiscountDetails.discount);
+      
+      // Ensure we have a stable discount ID
+      this.ensureStableDiscountId(extractedData, normalizedId, fullDiscountDetails);
+
+      this.logger.info('Successfully fetched discount from Shopify', {
+        discountId: extractedData.id,
+        title: extractedData.title,
+        status: extractedData.status,
+      });
+
+      return extractedData;
+    } catch (error) {
+      this.logger.error(error as Error, {
+        scope: 'DiscountService.getDiscountFromShopify',
+        discountId,
+      });
+      return null;
+    }
+  }
 
 }

@@ -17,6 +17,7 @@ import { authenticate } from "../shopify.server";
 import { createDiscountServiceStack, createServiceLogger } from "../services/service-factory";
 import { ErrorHandlingService } from "../services/error-handling.service";
 import { json } from "@remix-run/node";
+import { getStatusBadge, getDiscountTypeBadge } from "../utils/ui.utils";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { admin } = await authenticate.admin(request);
@@ -78,7 +79,6 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     return json({
       discount,
       discountData,
-      freshDiscountDetails: null,
       discountId
     });
 
@@ -91,7 +91,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
 export default function DiscountDetailPage() {
   try {
-    const { discount, discountData, freshDiscountDetails, discountId } = useLoaderData<typeof loader>();
+    const { discount, discountData, discountId } = useLoaderData<typeof loader>();
     
     
     if (!discount) {
@@ -108,30 +108,6 @@ export default function DiscountDetailPage() {
       );
     }
 
-    // Restore full functionality
-    const getStatusBadge = (status: string) => {
-      switch (status?.toLowerCase()) {
-        case 'active':
-          return <Badge tone="success">Active</Badge>;
-        case 'inactive':
-          return <Badge tone="critical">Inactive</Badge>;
-        case 'expired':
-          return <Badge tone="warning">Expired</Badge>;
-        default:
-          return <Badge>{status || 'Unknown'}</Badge>;
-      }
-    };
-
-    const getDiscountTypeBadge = (type: string) => {
-      switch (type?.toLowerCase()) {
-        case 'automatic':
-          return <Badge tone="info">Automatic</Badge>;
-        case 'code':
-          return <Badge tone="success">Code</Badge>;
-        default:
-          return <Badge>{type || 'Unknown'}</Badge>;
-      }
-    };
 
     return (
       <Page>

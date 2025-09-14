@@ -29,6 +29,11 @@ export interface IDiscountService {
    * Get all discounts from Shopify
    */
   getAllDiscountsFromShopify(): Promise<ExtractedDiscountData[]>;
+  
+  /**
+   * Get a specific discount from Shopify by ID
+   */
+  getDiscountFromShopify(discountId: string): Promise<ExtractedDiscountData | null>;
 }
 
 /**

@@ -9,6 +9,7 @@ import { authenticate } from "../shopify.server";
 import { createDiscountServiceStack, createServiceLogger } from "../services/service-factory";
 import { ErrorHandlingService, AppError } from "../services/error-handling.service";
 import { validationService } from "../services/validation.service";
+import { getStatusBadge, formatDate, formatDateTime } from "../utils/ui.utils";
 
 /**
  * Optimized route handler following SOLID principles
@@ -68,15 +69,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
-  const formData = await request.formData();
-  const action = formData.get('action');
-
   const logger = createServiceLogger('discounts-action');
   const errorHandler = new ErrorHandlingService(logger);
 
   try {
-      const { discountService, validationService: validator } = createDiscountServiceStack(admin, 'discounts-action');
+    const { admin } = await authenticate.admin(request);
+    
+    const formData = await request.formData();
+    const action = formData.get('action');
+    
+    const { discountService, validationService: validator } = createDiscountServiceStack(admin, 'discounts-action');
 
     if (action === 'initialize') {
       logger.info('Starting discount initialization...');
@@ -116,7 +118,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       
       logger.info(`Refreshing discount rule ${ruleId}...`);
       
-      const { discountRepository, targetingService, metafieldService } = createDiscountServiceStack(admin, 'discounts-action');
+      const { discountRepository, targetingService, metafieldService, discountService } = createDiscountServiceStack(admin, 'discounts-action');
       
       // Get the existing rule
       const existingRule = await errorHandler.withErrorHandling(
@@ -128,15 +130,42 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         throw new AppError("Discount rule not found", 'NOT_FOUND', 404, true, { ruleId });
       }
 
-      // Parse the stored discount data
-      let discountData;
+      // Fetch the latest discount data from Shopify
+      logger.info(`Fetching latest discount data from Shopify for ${existingRule.discountId}...`);
+      let latestDiscountData = null;
       try {
-        discountData = JSON.parse(existingRule.metafieldValue);
-      } catch (error) {
-        throw new AppError("Invalid discount data", 'INVALID_DATA', 500, true, { ruleId, error: error instanceof Error ? error.message : String(error) });
+        latestDiscountData = await errorHandler.withErrorHandling(
+          () => discountService.getDiscountFromShopify(existingRule.discountId),
+          { scope: 'action.refresh.getFromShopify', discountId: existingRule.discountId }
+        );
+      } catch (shopifyError) {
+        logger.error('Failed to fetch discount from Shopify', {
+          discountId: existingRule.discountId,
+          error: shopifyError instanceof Error ? shopifyError.message : String(shopifyError)
+        });
+        // Continue with stored data if Shopify fetch fails
       }
 
-      if (existingRule.isActive && discountData.id) {
+      if (!latestDiscountData) {
+        logger.warn(`Discount ${existingRule.discountId} not found in Shopify, using stored data`);        
+      } else {
+        logger.info(`Updating database with latest discount data from Shopify`);
+        await errorHandler.withErrorHandling(
+          () => discountRepository.updateByDiscountId(existingRule.discountId, {
+            metafieldValue: JSON.stringify(latestDiscountData),
+            discountTitle: latestDiscountData.title,
+            status: latestDiscountData.status || 'ACTIVE',
+            startDate: latestDiscountData.startsAt ? new Date(latestDiscountData.startsAt) : null,
+            endDate: latestDiscountData.endsAt ? new Date(latestDiscountData.endsAt) : null,
+            isActive: latestDiscountData.status === 'ACTIVE',
+          }),
+          { scope: 'action.refresh.updateDatabase', discountId: existingRule.discountId }
+        );
+      }
+
+      const discountData = latestDiscountData || JSON.parse(existingRule.metafieldValue);
+
+      if (discountData.status === 'ACTIVE' && discountData.id) {
         // ACTIVE DISCOUNT: Update product metafields
         const affectedProducts = await errorHandler.withErrorHandling(
           () => targetingService.getAffectedProducts(discountData.id),
@@ -245,30 +274,6 @@ export default function Index() {
     error?: boolean;
   } | null>(null);
 
-  const formatDate = (date: Date | string | null) => {
-    if (!date) return '-';
-    return new Date(date).toLocaleDateString('en-GB');
-  };
-
-  const formatDateTime = (date: Date | string | null) => {
-    if (!date) return '-';
-    return new Date(date).toLocaleString('en-GB');
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status.toUpperCase()) {
-      case 'ACTIVE':
-        return <Badge tone="success">Active</Badge>;
-      case 'EXPIRED':
-        return <Badge tone="critical">Expired</Badge>;
-      case 'DISABLED':
-        return <Badge tone="critical">Disabled</Badge>;
-      case 'SCHEDULED':
-        return <Badge tone="warning">Scheduled</Badge>;
-      default:
-        return <Badge tone="info">{status}</Badge>;
-    }
-  };
 
   const handleRefresh = (ruleId: number) => {
     setLoadingId(ruleId);
@@ -336,8 +341,8 @@ export default function Index() {
       : discount.discount,
     discount.products.toString(),
     getStatusBadge(discount.status),
-    formatDate(discount.startDate),
-    formatDate(discount.endDate),
+    formatDateTime(discount.startDate),
+    formatDateTime(discount.endDate),
     <>
       {loadingId === discount.id ? (
         <InlineStack align="center" gap="100">

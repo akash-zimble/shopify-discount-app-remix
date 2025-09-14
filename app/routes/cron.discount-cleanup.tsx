@@ -1,8 +1,9 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { createServiceLogger } from "../services/service-factory";
+import { createServiceLogger, createDiscountServiceStack } from "../services/service-factory";
 import { ErrorHandlingService, UnauthorizedError } from "../services/error-handling.service";
 import { configurationService } from "../services/configuration.service";
+import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 
 /**
@@ -34,6 +35,41 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     logger.info("Starting discount cleanup cron job");
 
+    // Get the first available session to create admin client
+    const session = await prisma.session.findFirst({
+      orderBy: { expires: 'desc' }
+    });
+
+
+    if (!session) {
+      logger.error("No valid session found for cron job");
+      throw new Error("No valid Shopify session found");
+    }
+
+    // Create admin client for the cron job
+    const adminClient = {
+      graphql: async (query: string, options: { variables?: Record<string, any> } = {}) => {
+        const url = `https://${session.shop}/admin/api/2025-07/graphql.json`;
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Shopify-Access-Token': session.accessToken,
+          },
+          body: JSON.stringify({
+            query,
+            variables: options.variables || {},
+          }),
+        });
+
+        return response;
+      }
+    };
+
+    // Create service stack for metafield operations
+    const { targetingService, metafieldService } = createDiscountServiceStack(adminClient, 'cron-cleanup');
+
     // Find expired discounts
     const expiredDiscounts = await errorHandler.withErrorHandling(
       () => prisma.discountMetafieldRule.findMany({
@@ -59,6 +95,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     let deactivatedCount = 0;
+    let metafieldCleanupCount = 0;
     const expiredDiscountData = [];
 
     // Process each expired discount
@@ -87,9 +124,40 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
         logger.info(`Deactivated expired discount: ${discount.discountTitle} (${discount.discountId})`);
 
-        // Note: In a production system, you might also want to remove the discount
-        // from product metafields here, but that would require Shopify API access
-        // which might not be available in a cron context
+        // Remove discount from product metafields
+        try {
+          logger.info(`Cleaning up expired discount ${discount.discountId} from product metafields...`);
+          
+          const allProductIds = await errorHandler.withErrorHandling(
+            () => targetingService.getAllProductIds(),
+            { scope: 'cron.getAllProductIds', discountId: discount.discountId }
+          );
+
+          const metafieldResult = await errorHandler.withErrorHandling(
+            () => metafieldService.removeDiscountFromMultipleProducts(allProductIds, discount.discountId),
+            { scope: 'cron.removeMetafields', discountId: discount.discountId }
+          );
+
+          // Update the database with products count
+          await errorHandler.withErrorHandling(
+            () => prisma.discountMetafieldRule.updateMany({
+              where: { discountId: discount.discountId },
+              data: { productsCount: 0 },
+            }),
+            { scope: 'cron.updateProductsCount', discountId: discount.discountId }
+          );
+
+          metafieldCleanupCount += metafieldResult.successCount;
+          logger.info(`Removed expired discount ${discount.discountId} from ${metafieldResult.successCount} product metafields`);
+
+        } catch (metafieldError) {
+          logger.error("Failed to clean up metafields for expired discount", {
+            discountId: discount.discountId,
+            discountTitle: discount.discountTitle,
+            error: metafieldError instanceof Error ? metafieldError.message : String(metafieldError),
+          });
+          // Continue processing other discounts even if metafield cleanup fails
+        }
 
       } catch (error) {
         logger.error("Failed to deactivate expired discount", {
@@ -103,13 +171,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     logger.info("Discount cleanup completed", {
       totalFound: expiredDiscounts.length,
       deactivated: deactivatedCount,
+      metafieldCleanupCount,
     });
 
     return json(errorHandler.createSuccessResponse({
       processed: expiredDiscounts.length,
       expired: expiredDiscountData,
       deactivatedCount,
-    }, `Processed ${expiredDiscounts.length} expired discounts, deactivated ${deactivatedCount}`));
+      metafieldCleanupCount,
+    }, `Processed ${expiredDiscounts.length} expired discounts, deactivated ${deactivatedCount}, cleaned ${metafieldCleanupCount} product metafields`));
 
   } catch (error) {
     const appError = errorHandler.handleError(error as Error, {

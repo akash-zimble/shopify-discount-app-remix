@@ -3,7 +3,7 @@ import { authenticate } from "../shopify.server";
 import { createDiscountServiceStack, createServiceLogger } from "../services/service-factory";
 import { ErrorHandlingService, AppError } from "../services/error-handling.service";
 import { validationService } from "../services/validation.service";
-import { createWebhookAdminClient } from "../utils/webhook-admin.client";
+// Inline webhook admin client to avoid Vite/SSR import issues
 
 /**
  * Optimized webhook handler for discount creation
@@ -34,8 +34,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return new Response("OK", { status: 200 });
     }
 
-    // Create admin object from session data (webhook approach)
-    const admin = createWebhookAdminClient(session);
+    // Create admin object from session data (webhook approach) - inline to avoid Vite/SSR issues
+    const admin = {
+      graphql: async (query: string, options: { variables?: Record<string, any> } = {}) => {
+        const url = `https://${session.shop}/admin/api/2025-07/graphql.json`;
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Shopify-Access-Token': session.accessToken!,
+          },
+          body: JSON.stringify({
+            query,
+            variables: options.variables || {},
+          }),
+        });
+
+        return response;
+      }
+    };
     
     // Create service stack with proper dependency injection
     const { discountService } = createDiscountServiceStack(admin, "webhook.discounts.created");

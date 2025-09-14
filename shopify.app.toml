@@ -2,7 +2,7 @@
 
 client_id = "1e230754459dc2aec3bc6f7d355989bd"
 name = "discount-remix-akash"
-application_url = "https://pressing-medications-moderate-core.trycloudflare.com"
+application_url = "https://ribbon-able-hampshire-ol.trycloudflare.com"
 embedded = true
 handle = "discount-remix-akash"
 
@@ -36,7 +36,7 @@ api_version = "2025-07"
 scopes = "write_products,read_discounts,read_metaobjects,write_metaobjects"
 
 [auth]
-redirect_urls = ["https://pressing-medications-moderate-core.trycloudflare.com/auth/callback", "https://pressing-medications-moderate-core.trycloudflare.com/auth/shopify/callback", "https://pressing-medications-moderate-core.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://ribbon-able-hampshire-ol.trycloudflare.com/auth/callback", "https://ribbon-able-hampshire-ol.trycloudflare.com/auth/shopify/callback", "https://ribbon-able-hampshire-ol.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false
