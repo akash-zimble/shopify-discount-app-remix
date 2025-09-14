@@ -20,14 +20,18 @@ export class ProductService implements IProductService {
   ) {}
 
   /**
-   * Extract numeric ID from Shopify GID format
+   * Extract numeric ID from Shopify GID format or handle numeric IDs
    * e.g., "gid://shopify/Product/8579006202034" -> "8579006202034"
+   * e.g., 8579006202034 -> "8579006202034"
    */
-  private extractShopifyId(gid: string): string {
-    if (gid.startsWith('gid://shopify/Product/')) {
-      return gid.replace('gid://shopify/Product/', '');
+  private extractShopifyId(gid: string | number): string {
+    // Convert to string if it's a number
+    const gidStr = String(gid);
+    
+    if (gidStr.startsWith('gid://shopify/Product/')) {
+      return gidStr.replace('gid://shopify/Product/', '');
     }
-    return gid; // Return as-is if not in GID format
+    return gidStr; // Return as-is if not in GID format
   }
 
   async fetchAndSaveAllProducts(): Promise<ProductFetchResult> {
@@ -218,7 +222,7 @@ export class ProductService implements IProductService {
       // Convert to GID format for GraphQL query
       const productGid = shopifyId.startsWith('gid://') ? shopifyId : `gid://shopify/Product/${shopifyId}`;
 
-      // Fetch single product from Shopify
+      // Fetch single product from Shopify with complete data
       const response = await this.adminClient.executeQuery(`
         query getProduct($productId: ID!) {
           product(id: $productId) {
@@ -229,14 +233,14 @@ export class ProductService implements IProductService {
             productType
             vendor
             status
-            variants(first: 1) {
+            variants(first: 250) {
               edges {
                 node {
                   id
                 }
               }
             }
-            images(first: 1) {
+            images(first: 250) {
               edges {
                 node {
                   id
@@ -368,10 +372,18 @@ export class ProductService implements IProductService {
 
   /**
    * Transform Shopify product data to our Product interface
+   * Handles both GraphQL responses and webhook payloads
    */
   private async transformShopifyProduct(shopifyProduct: any): Promise<Product> {
-    const variantsCount = shopifyProduct.variants?.edges?.length || 0;
-    const imagesCount = shopifyProduct.images?.edges?.length || 0;
+    // Handle different data structures (GraphQL vs webhook)
+    const variantsCount = shopifyProduct.variants?.edges?.length || 
+                         shopifyProduct.variants?.length || 
+                         shopifyProduct.variants_count || 0;
+    
+    const imagesCount = shopifyProduct.images?.edges?.length || 
+                       shopifyProduct.images?.length || 
+                       shopifyProduct.images_count || 0;
+    
     const tags = shopifyProduct.tags ? JSON.stringify(shopifyProduct.tags) : null;
     const activeDiscounts = shopifyProduct.metafield?.value || null;
 
@@ -382,7 +394,7 @@ export class ProductService implements IProductService {
       title: shopifyProduct.title || '',
       handle: shopifyProduct.handle || '',
       description: shopifyProduct.description || null,
-      productType: shopifyProduct.productType || null,
+      productType: shopifyProduct.productType || shopifyProduct.product_type || null,
       vendor: shopifyProduct.vendor || null,
       status: shopifyProduct.status || 'ACTIVE',
       variantsCount,
@@ -393,6 +405,136 @@ export class ProductService implements IProductService {
       updatedAt: new Date(),
       lastFetchedAt: new Date(),
     };
+  }
+
+  /**
+   * Process product create webhook
+   */
+  async processProductCreate(payload: any): Promise<Product> {
+    try {
+      const shopifyId = this.extractShopifyId(payload.id);
+      
+      this.logger.info('Processing product create webhook', { 
+        productId: payload.id,
+        shopifyId,
+        title: payload.title 
+      });
+
+      // Fetch complete product data from Shopify to ensure all fields are updated
+      const success = await this.syncProductFromShopify(shopifyId);
+      
+      if (success) {
+        // Get the updated product from database
+        const productData = await this.getProductById(shopifyId);
+        if (productData) {
+          this.logger.info('Product created and synced successfully', {
+            shopifyId: productData.shopifyId,
+            title: productData.title,
+            shop: productData.shop
+          });
+          return productData;
+        } else {
+          throw new Error('Product was synced but could not be retrieved from database');
+        }
+      } else {
+        throw new Error('Failed to sync product from Shopify');
+      }
+    } catch (error) {
+      this.logger.error(error as Error, {
+        scope: 'ProductService.processProductCreate',
+        productId: payload.id,
+        title: payload.title
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Process product update webhook
+   */
+  async processProductUpdate(payload: any): Promise<Product> {
+    try {
+      const shopifyId = this.extractShopifyId(payload.id);
+      
+      this.logger.info('Processing product update webhook', { 
+        productId: payload.id,
+        shopifyId,
+        title: payload.title 
+      });
+
+      // Fetch complete product data from Shopify to ensure all fields are updated
+      const success = await this.syncProductFromShopify(shopifyId);
+      
+      if (success) {
+        // Get the updated product from database
+        const productData = await this.getProductById(shopifyId);
+        if (productData) {
+          this.logger.info('Product updated and synced successfully', {
+            shopifyId: productData.shopifyId,
+            title: productData.title,
+            shop: productData.shop
+          });
+          return productData;
+        } else {
+          throw new Error('Product was synced but could not be retrieved from database');
+        }
+      } else {
+        throw new Error('Failed to sync product from Shopify');
+      }
+    } catch (error) {
+      this.logger.error(error as Error, {
+        scope: 'ProductService.processProductUpdate',
+        productId: payload.id,
+        title: payload.title
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Process product delete webhook
+   */
+  async processProductDelete(payload: any): Promise<{ deleted: boolean; shopifyId: string }> {
+    try {
+      const shopifyId = this.extractShopifyId(payload.id);
+      
+      this.logger.info('Processing product delete webhook', { 
+        productId: payload.id,
+        shopifyId,
+        title: payload.title 
+      });
+
+      // Delete the product from our database
+      const deleted = await prisma.product.deleteMany({
+        where: {
+          shop: this.shop,
+          shopifyId: shopifyId
+        }
+      });
+
+      const success = deleted.count > 0;
+
+      if (success) {
+        this.logger.info('Product deleted successfully', {
+          shopifyId,
+          shop: this.shop
+        });
+      } else {
+        this.logger.warn('Product not found in database for deletion', {
+          shopifyId,
+          shop: this.shop
+        });
+      }
+
+      return { deleted: success, shopifyId };
+    } catch (error) {
+      this.logger.error(error as Error, {
+        scope: 'ProductService.processProductDelete',
+        productId: payload.id,
+        title: payload.title
+      });
+      throw error;
+    }
   }
 
   /**

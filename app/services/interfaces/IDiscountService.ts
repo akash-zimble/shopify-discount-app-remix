@@ -156,6 +156,11 @@ export interface IProductService {
    * Sync a single product from Shopify to database
    */
   syncProductFromShopify(shopifyId: string): Promise<boolean>;
+
+  // Webhook processing methods
+  processProductCreate(payload: any): Promise<Product>;
+  processProductUpdate(payload: any): Promise<Product>;
+  processProductDelete(payload: any): Promise<{ deleted: boolean; shopifyId: string }>;
 }
 
 /**

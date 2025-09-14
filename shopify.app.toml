@@ -2,7 +2,7 @@
 
 client_id = "1e230754459dc2aec3bc6f7d355989bd"
 name = "discount-remix-akash"
-application_url = "https://cute-calculations-recently-generous.trycloudflare.com"
+application_url = "https://somebody-donors-senegal-partly.trycloudflare.com"
 embedded = true
 handle = "discount-remix-akash"
 
@@ -32,11 +32,23 @@ api_version = "2025-07"
   topics = [ "discounts/delete" ]
   uri = "/webhooks/discounts/deleted"
 
+  [[webhooks.subscriptions]]
+  topics = [ "products/create" ]
+  uri = "/webhooks/products/created"
+
+  [[webhooks.subscriptions]]
+  topics = [ "products/update" ]
+  uri = "/webhooks/products/updated"
+
+  [[webhooks.subscriptions]]
+  topics = [ "products/delete" ]
+  uri = "/webhooks/products/deleted"
+
 [access_scopes]
 scopes = "write_products,read_discounts,read_metaobjects,write_metaobjects"
 
 [auth]
-redirect_urls = ["https://cute-calculations-recently-generous.trycloudflare.com/auth/callback", "https://cute-calculations-recently-generous.trycloudflare.com/auth/shopify/callback", "https://cute-calculations-recently-generous.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://somebody-donors-senegal-partly.trycloudflare.com/auth/callback", "https://somebody-donors-senegal-partly.trycloudflare.com/auth/shopify/callback", "https://somebody-donors-senegal-partly.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false

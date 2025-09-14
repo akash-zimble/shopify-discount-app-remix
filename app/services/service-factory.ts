@@ -63,3 +63,25 @@ export function createDiscountServiceStack(admin: any, loggerName: string = 'dis
     logger,
   };
 }
+
+export function createServiceStack(admin: any, loggerName: string = 'service', shop?: string): {
+  productService: IProductService;
+  adminClient: IAdminClient;
+  validationService: IValidationService;
+  configurationService: IConfigurationService;
+  logger: Logger;
+} {
+  const logger = createServiceLogger(loggerName);
+  
+  // Create services with proper dependency injection
+  const adminClient = new AdminClientService(admin, logger);
+  const productService = new ProductService(adminClient, logger, shop || 'unknown');
+
+  return {
+    productService,
+    adminClient,
+    validationService,
+    configurationService,
+    logger,
+  };
+}
