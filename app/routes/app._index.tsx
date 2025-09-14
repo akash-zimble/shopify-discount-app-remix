@@ -147,7 +147,50 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
 
       if (!latestDiscountData) {
-        logger.warn(`Discount ${existingRule.discountId} not found in Shopify, using stored data`);        
+        logger.warn(`Discount ${existingRule.discountId} not found in Shopify, marking as deleted`);
+        
+        // Mark discount as deleted in database since it's not found in Shopify
+        await errorHandler.withErrorHandling(
+          () => discountRepository.updateByDiscountId(existingRule.discountId, {
+            isActive: false,
+            status: 'DELETED',
+            lastRan: new Date(),
+          }),
+          { scope: 'action.refresh.markDeleted', discountId: existingRule.discountId }
+        );
+
+        try {
+          const allProductIds = await errorHandler.withErrorHandling(
+            () => targetingService.getAllProductIds(),
+            { scope: 'action.refresh.getAllProductIds', discountId: existingRule.discountId }
+          );
+
+          if (allProductIds.length > 0) {
+            const result = await errorHandler.withErrorHandling(
+              () => metafieldService.removeDiscountFromMultipleProducts(allProductIds, existingRule.discountId),
+              { scope: 'action.refresh.removeMetafields', discountId: existingRule.discountId }
+            );
+
+            // Update the products count in the database
+            await errorHandler.withErrorHandling(
+              () => discountRepository.updateProductsCount(existingRule.discountId, 0),
+              { scope: 'action.refresh.updateProductsCount', discountId: existingRule.discountId }
+            );
+
+            logger.info(`Removed deleted discount ${existingRule.discountId} from ${result.successCount} product metafields`);
+          }
+        } catch (metafieldError) {
+          logger.error('Failed to clean up metafields for deleted discount', {
+            discountId: existingRule.discountId,
+            error: metafieldError instanceof Error ? metafieldError.message : String(metafieldError),
+          });
+        }
+        
+        return json(errorHandler.createSuccessResponse({
+          lastRan: new Date().toISOString(),
+          status: 'DELETED',
+          message: 'Discount not found in Shopify and marked as deleted'
+        }, "Discount marked as deleted and removed from product metafields"));
       } else {
         logger.info(`Updating database with latest discount data from Shopify`);
         await errorHandler.withErrorHandling(
@@ -265,6 +308,7 @@ export default function Index() {
     errors?: number;
     updatedCount?: number;
     removedCount?: number;
+    status?: string;
   }>();
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);

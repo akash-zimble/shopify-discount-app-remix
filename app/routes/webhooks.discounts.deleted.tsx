@@ -1,97 +1,10 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
-import { authenticate } from "../shopify.server";
-import { createDiscountServiceStack, createServiceLogger } from "../services/service-factory";
-import { ErrorHandlingService } from "../services/error-handling.service";
-import { validationService } from "../services/validation.service";
+import { createWebhookHandler } from "../services/webhook-handler.server";
 
-/**
- * Optimized webhook handler for discount deletion
- * Follows SOLID principles with proper error handling and validation
- */
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { topic, shop, payload, session } = await authenticate.webhook(request);
-
-  const logger = createServiceLogger("webhook.discounts.deleted");
-  const errorHandler = new ErrorHandlingService(logger);
-
-  try {
-    logger.info("Received webhook", { topic, shop });
-
-    // Validate webhook payload
-    const payloadValidation = validationService.validateWebhookPayload(payload);
-    if (!payloadValidation.isValid) {
-      logger.error("Invalid webhook payload", { 
-        errors: payloadValidation.errors, 
-        warnings: payloadValidation.warnings,
-        payload 
-      });
-      return new Response("Invalid payload", { status: 400 });
-    }
-
-    if (!session?.accessToken) {
-      logger.warn("No valid session - storing for background processing", { shop });
-      return new Response("OK", { status: 200 });
-    }
-
-    const admin = {
-      graphql: async (query: string, options: { variables?: Record<string, any> } = {}) => {
-        const url = `https://${session.shop}/admin/api/2025-07/graphql.json`;
-        
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': session.accessToken!,
-          },
-          body: JSON.stringify({
-            query,
-            variables: options.variables || {},
-          }),
-        });
-
-        return response;
-      }
-    };
-    
-    // Create service stack with proper dependency injection
-    const { discountService } = createDiscountServiceStack(admin, "webhook.discounts.deleted");
-
-    // Process discount deletion with error handling
-    const result = await errorHandler.withErrorHandling(
-      () => discountService.processDiscountDelete(payload),
-      { 
-        scope: "webhook.discounts.deleted", 
-        topic, 
-        shop,
-        discountId: payload.admin_graphql_api_id || payload.id 
-      }
-    );
-
-    logger.info("Processed discount deletion", {
-      id: result.id,
-      deleted: result.deleted,
-      shop,
-    });
-
-    return new Response("OK", { status: 200 });
-  } catch (error) {
-    const appError = errorHandler.handleError(error as Error, {
-      scope: "webhook.discounts.deleted",
-      topic,
-      shop,
-      payload: JSON.stringify(payload),
-    });
-
-    // Log the error but don't fail the webhook to avoid retries
-    logger.error("Webhook processing failed", {
-      error: appError.message,
-      code: appError.code,
-      statusCode: appError.statusCode,
-      context: appError.context,
-    });
-
-    // Return 200 to prevent webhook retries for operational errors
-    const statusCode = appError.isOperational ? 200 : appError.statusCode;
-    return new Response(appError.isOperational ? "OK" : appError.message, { status: statusCode });
-  }
+  const webhookHandler = createWebhookHandler("deleted");
+  
+  return webhookHandler.handleWebhook(request, async (discountService, payload) => {
+    return await discountService.processDiscountDelete(payload);
+  });
 };
