@@ -21,40 +21,192 @@ export class DiscountService implements IDiscountService {
     private logger: Logger
   ) {}
 
-  async processDiscountCreate(payload: any): Promise<ExtractedDiscountData> {
+  // Common GraphQL fragments to eliminate duplication
+  private readonly DISCOUNT_FRAGMENTS = {
+    customerGets: `
+      customerGets {
+        value {
+          __typename
+          ... on DiscountAmount { 
+            amount { 
+              amount 
+              currencyCode 
+            } 
+          }
+          ... on DiscountPercentage { 
+            percentage 
+          }
+        }
+        items {
+          ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
+          ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
+          ... on AllDiscountItems { allItems }
+        }
+      }
+    `,
+    discountCodeBasic: `
+      ... on DiscountCodeBasic {
+        __typename
+        title
+        summary
+        status
+        startsAt
+        endsAt
+        codes(first: 1) { edges { node { code } } }
+        customerGets {
+          value {
+            __typename
+            ... on DiscountAmount { 
+              amount { 
+                amount 
+                currencyCode 
+              } 
+            }
+            ... on DiscountPercentage { 
+              percentage 
+            }
+          }
+          items {
+            ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
+            ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
+            ... on AllDiscountItems { allItems }
+          }
+        }
+      }
+    `,
+    discountAutomaticBasic: `
+      ... on DiscountAutomaticBasic {
+        __typename
+        title
+        summary
+        status
+        startsAt
+        endsAt
+        customerGets {
+          value {
+            __typename
+            ... on DiscountAmount { 
+              amount { 
+                amount 
+                currencyCode 
+              } 
+            }
+            ... on DiscountPercentage { 
+              percentage 
+            }
+          }
+          items {
+            ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
+            ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
+            ... on AllDiscountItems { allItems }
+          }
+        }
+      }
+    `,
+    discountAutomaticBxgy: `
+      ... on DiscountAutomaticBxgy {
+        __typename
+        title
+        summary
+        status
+        startsAt
+        endsAt
+        customerGets {
+          value {
+            __typename
+            ... on DiscountAmount { 
+              amount { 
+                amount 
+                currencyCode 
+              } 
+            }
+            ... on DiscountPercentage { 
+              percentage 
+            }
+          }
+          items {
+            ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
+            ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
+            ... on AllDiscountItems { allItems }
+          }
+        }
+        customerBuys {
+          items {
+            ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
+            ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
+            ... on AllDiscountItems { allItems }
+          }
+        }
+      }
+    `
+  };
+
+  // Common helper methods to eliminate duplication
+  private async validateAndExtractDiscountId(payload: any): Promise<string> {
+    const payloadValidation = validationService.validateWebhookPayload(payload);
+    if (!payloadValidation.isValid) {
+      throw new Error(`Invalid webhook payload: ${payloadValidation.errors.join(', ')}`);
+    }
+
+    const rawDiscountId = payload.admin_graphql_api_id?.split('/').pop() || payload.id;
+    const discountId = normalizeDiscountId(rawDiscountId);
+
+    if (!discountId) {
+      throw new Error('No discount ID found in payload');
+    }
+
+    return discountId;
+  }
+
+  private async processDiscountWithErrorHandling<T>(
+    operation: () => Promise<T>,
+    scope: string,
+    context?: Record<string, any>
+  ): Promise<T> {
     try {
-      // Validate webhook payload
-      const payloadValidation = validationService.validateWebhookPayload(payload);
-      if (!payloadValidation.isValid) {
-        throw new Error(`Invalid webhook payload: ${payloadValidation.errors.join(', ')}`);
-      }
+      return await operation();
+    } catch (error) {
+      this.logger.error(error as Error, { scope, ...context });
+      throw error;
+    }
+  }
 
-      const rawDiscountId = payload.admin_graphql_api_id?.split('/').pop() || payload.id;
-      const discountId = normalizeDiscountId(rawDiscountId);
+  private buildDiscountGraphqlId(discountId: string, payload?: any): string {
+    return payload?.admin_graphql_api_id || `gid://shopify/DiscountNode/${discountId}`;
+  }
 
-      if (!discountId) {
-        throw new Error('No discount ID found in payload');
-      }
+  private async processDiscountData(
+    payload: any,
+    discountId: string,
+    operation: 'create' | 'update'
+  ): Promise<{ extractedData: ExtractedDiscountData; existingRule: any; fullDiscountDetails: any }> {
+    const graphqlId = this.buildDiscountGraphqlId(discountId, payload);
+    
+    // Fetch full discount details
+    const fullDiscountDetails = await this.fetchFullDiscountDetails(graphqlId);
 
-      // Check if discount already exists
-      const existingRule = await this.discountRepository.findByDiscountId(discountId);
-      
-      // Fetch full discount details
-      const fullDiscountDetails = await this.fetchFullDiscountDetails(
-        payload.admin_graphql_api_id || `gid://shopify/DiscountNode/${discountId}`
-      );
+    if (!fullDiscountDetails && operation === 'create') {
+      this.logger.warn('Could not fetch full discount details, using webhook payload', { discountId });
+    }
 
-      if (!fullDiscountDetails) {
-        this.logger.warn('Could not fetch full discount details, using webhook payload', { discountId });
-      }
+    // Extract structured data
+    const extractedData = fullDiscountDetails
+      ? DiscountDataExtractor.extractFromFullDetails(fullDiscountDetails.discount)
+      : DiscountDataExtractor.extractFromWebhookPayload(payload);
 
-      // Extract structured data
-      const extractedData = fullDiscountDetails
-        ? DiscountDataExtractor.extractFromFullDetails(fullDiscountDetails.discount)
-        : DiscountDataExtractor.extractFromWebhookPayload(payload);
+    // Ensure we have a stable discount ID
+    this.ensureStableDiscountId(extractedData, discountId, fullDiscountDetails);
 
-      // Ensure we have a stable discount ID
-      this.ensureStableDiscountId(extractedData, discountId, fullDiscountDetails);
+    // Get existing rule
+    const existingRule = await this.discountRepository.findByDiscountId(discountId);
+
+    return { extractedData, existingRule, fullDiscountDetails };
+  }
+
+  async processDiscountCreate(payload: any): Promise<ExtractedDiscountData> {
+    return this.processDiscountWithErrorHandling(async () => {
+      const discountId = await this.validateAndExtractDiscountId(payload);
+      const { extractedData, existingRule } = await this.processDiscountData(payload, discountId, 'create');
 
       // Only process ACTIVE discounts
       if (extractedData.status !== 'ACTIVE') {
@@ -72,47 +224,18 @@ export class DiscountService implements IDiscountService {
 
       // Update product metafields
       await this.updateAffectedProductMetafields(
-        payload.admin_graphql_api_id || `gid://shopify/DiscountNode/${discountId}`,
+        this.buildDiscountGraphqlId(discountId, payload),
         extractedData
       );
 
       return extractedData;
-    } catch (error) {
-      this.logger.error(error as Error, { scope: 'DiscountService.processDiscountCreate' });
-      throw error;
-    }
+    }, 'DiscountService.processDiscountCreate');
   }
 
   async processDiscountUpdate(payload: any): Promise<ExtractedDiscountData> {
-    try {
-      // Validate webhook payload
-      const payloadValidation = validationService.validateWebhookPayload(payload);
-      if (!payloadValidation.isValid) {
-        throw new Error(`Invalid webhook payload: ${payloadValidation.errors.join(', ')}`);
-      }
-
-      const rawDiscountId = payload.admin_graphql_api_id?.split('/').pop() || payload.id;
-      const discountId = normalizeDiscountId(rawDiscountId);
-
-      if (!discountId) {
-        throw new Error('No discount ID found in payload');
-      }
-
-      // Fetch full discount details
-      const fullDiscountDetails = await this.fetchFullDiscountDetails(
-        payload.admin_graphql_api_id || `gid://shopify/DiscountNode/${discountId}`
-      );
-
-      // Extract structured data
-      const extractedData = fullDiscountDetails
-        ? DiscountDataExtractor.extractFromFullDetails(fullDiscountDetails.discount)
-        : DiscountDataExtractor.extractFromWebhookPayload(payload);
-
-      // Ensure we have a stable discount ID
-      this.ensureStableDiscountId(extractedData, discountId, fullDiscountDetails);
-
-      // Get existing rule
-      const existingRule = await this.discountRepository.findByDiscountId(discountId);
+    return this.processDiscountWithErrorHandling(async () => {
+      const discountId = await this.validateAndExtractDiscountId(payload);
+      const { extractedData, existingRule } = await this.processDiscountData(payload, discountId, 'update');
 
       // If not ACTIVE, treat as removal
       if (extractedData.status !== 'ACTIVE') {
@@ -137,31 +260,17 @@ export class DiscountService implements IDiscountService {
 
       // Update product metafields
       await this.updateAffectedProductMetafields(
-        payload.admin_graphql_api_id || `gid://shopify/DiscountNode/${discountId}`,
+        this.buildDiscountGraphqlId(discountId, payload),
         extractedData
       );
 
       return extractedData;
-    } catch (error) {
-      this.logger.error(error as Error, { scope: 'DiscountService.processDiscountUpdate' });
-      throw error;
-    }
+    }, 'DiscountService.processDiscountUpdate');
   }
 
   async processDiscountDelete(payload: any): Promise<{ id: string; deleted: boolean }> {
-    try {
-      // Validate webhook payload
-      const payloadValidation = validationService.validateWebhookPayload(payload);
-      if (!payloadValidation.isValid) {
-        throw new Error(`Invalid webhook payload: ${payloadValidation.errors.join(', ')}`);
-      }
-
-      const rawDiscountId = payload.admin_graphql_api_id?.split('/').pop() || payload.id;
-      const discountId = normalizeDiscountId(rawDiscountId);
-
-      if (!discountId) {
-        throw new Error('No discount ID found in payload');
-      }
+    return this.processDiscountWithErrorHandling(async () => {
+      const discountId = await this.validateAndExtractDiscountId(payload);
 
       // Get existing rule before deactivating
       const existingRule = await this.discountRepository.findByDiscountId(discountId);
@@ -177,10 +286,7 @@ export class DiscountService implements IDiscountService {
       }
 
       return { id: discountId, deleted: true };
-    } catch (error) {
-      this.logger.error(error as Error, { scope: 'DiscountService.processDiscountDelete' });
-      throw error;
-    }
+    }, 'DiscountService.processDiscountDelete');
   }
 
   async initializeAllDiscounts(): Promise<InitializationResult> {
@@ -300,71 +406,9 @@ export class DiscountService implements IDiscountService {
                   id
                   discount {
                     __typename
-                    ... on DiscountCodeBasic {
-                      __typename
-                      title
-                      summary
-                      status
-                      startsAt
-                      endsAt
-                      codes(first: 1) { edges { node { code } } }
-                      customerGets {
-                        value {
-                          ... on DiscountAmount { __typename amount { amount currencyCode } }
-                          ... on DiscountPercentage { __typename percentage }
-                        }
-                        items {
-                          ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
-                          ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
-                          ... on AllDiscountItems { allItems }
-                        }
-                      }
-                    }
-                    ... on DiscountAutomaticBasic {
-                      __typename
-                      title
-                      summary
-                      status
-                      startsAt
-                      endsAt
-                      customerGets {
-                        value {
-                          ... on DiscountAmount { __typename amount { amount currencyCode } }
-                          ... on DiscountPercentage { __typename percentage }
-                        }
-                        items {
-                          ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
-                          ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
-                          ... on AllDiscountItems { allItems }
-                        }
-                      }
-                    }
-                    ... on DiscountAutomaticBxgy {
-                      __typename
-                      title
-                      summary
-                      status
-                      startsAt
-                      endsAt
-                      customerGets {
-                        value {
-                          ... on DiscountAmount { __typename amount { amount currencyCode } }
-                          ... on DiscountPercentage { __typename percentage }
-                        }
-                        items {
-                          ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
-                          ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
-                          ... on AllDiscountItems { allItems }
-                        }
-                      }
-                      customerBuys {
-                        items {
-                          ... on DiscountProducts { products(first: 250) { edges { node { id } } } }
-                          ... on DiscountCollections { collections(first: 250) { edges { node { id } } } }
-                          ... on AllDiscountItems { allItems }
-                        }
-                      }
-                    }
+                    ${this.DISCOUNT_FRAGMENTS.discountCodeBasic}
+                    ${this.DISCOUNT_FRAGMENTS.discountAutomaticBasic}
+                    ${this.DISCOUNT_FRAGMENTS.discountAutomaticBxgy}
                   }
                 }
               }
@@ -422,70 +466,9 @@ export class DiscountService implements IDiscountService {
                 id
                 discount {
                   __typename
-                  ... on DiscountCodeBasic {
-                    title
-                    summary
-                    status
-                    startsAt
-                    endsAt
-                    codes(first: 1) { edges { node { code } } }
-                    customerGets {
-                      value {
-                        __typename
-                        ... on DiscountAmount { 
-                          amount { 
-                            amount 
-                            currencyCode 
-                          } 
-                        }
-                        ... on DiscountPercentage { 
-                          percentage 
-                        }
-                      }
-                    }
-                  }
-                  ... on DiscountAutomaticBasic {
-                    title
-                    summary
-                    status
-                    startsAt
-                    endsAt
-                    customerGets {
-                      value {
-                        __typename
-                        ... on DiscountAmount { 
-                          amount { 
-                            amount 
-                            currencyCode 
-                          } 
-                        }
-                        ... on DiscountPercentage { 
-                          percentage 
-                        }
-                      }
-                    }
-                  }
-                  ... on DiscountAutomaticBxgy {
-                    title
-                    summary
-                    status
-                    startsAt
-                    endsAt
-                    customerGets {
-                      value {
-                        __typename
-                        ... on DiscountAmount { 
-                          amount { 
-                            amount 
-                            currencyCode 
-                          } 
-                        }
-                        ... on DiscountPercentage { 
-                          percentage 
-                        }
-                      }
-                    }
-                  }
+                  ${this.DISCOUNT_FRAGMENTS.discountCodeBasic}
+                  ${this.DISCOUNT_FRAGMENTS.discountAutomaticBasic}
+                  ${this.DISCOUNT_FRAGMENTS.discountAutomaticBxgy}
                 }
               }
             }
