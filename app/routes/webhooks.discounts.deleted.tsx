@@ -3,7 +3,6 @@ import { authenticate } from "../shopify.server";
 import { createDiscountServiceStack, createServiceLogger } from "../services/service-factory";
 import { ErrorHandlingService } from "../services/error-handling.service";
 import { validationService } from "../services/validation.service";
-// Inline webhook admin client to avoid Vite/SSR import issues
 
 /**
  * Optimized webhook handler for discount deletion
@@ -34,7 +33,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return new Response("OK", { status: 200 });
     }
 
-    // Create admin object from session data (webhook approach) - inline to avoid Vite/SSR issues
     const admin = {
       graphql: async (query: string, options: { variables?: Record<string, any> } = {}) => {
         const url = `https://${session.shop}/admin/api/2025-07/graphql.json`;

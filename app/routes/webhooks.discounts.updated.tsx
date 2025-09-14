@@ -3,7 +3,6 @@ import { authenticate } from "../shopify.server";
 import { createDiscountServiceStack, createServiceLogger } from "../services/service-factory";
 import { ErrorHandlingService } from "../services/error-handling.service";
 import { validationService } from "../services/validation.service";
-// Inline webhook admin client to avoid Vite/SSR import issues
 
 /**
  * Optimized webhook handler for discount updates
