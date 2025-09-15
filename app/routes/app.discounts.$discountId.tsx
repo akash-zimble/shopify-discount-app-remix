@@ -11,6 +11,7 @@ import {
   Badge,
   ButtonGroup,
   Box,
+  DataTable,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -31,7 +32,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const errorHandler = new ErrorHandlingService(logger);
 
   try {
-    const { discountRepository } = createDiscountServiceStack(admin, 'discount-detail');
+    const { discountRepository, productDiscountService } = createDiscountServiceStack(admin, 'discount-detail');
 
     // Get discount details from database
     let discount = await errorHandler.withErrorHandling(
@@ -76,9 +77,28 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       logger.warn('Failed to parse discount data', { discountId, error: error instanceof Error ? error.message : String(error) });
     }
 
+    // Get products associated with this discount
+    let discountProducts: any[] = [];
+    try {
+      discountProducts = await errorHandler.withErrorHandling(
+        () => productDiscountService.getDiscountProducts(discount.id),
+        { scope: 'loader.getDiscountProducts', discountId: discount.id }
+      );
+      logger.info('Fetched discount products', { 
+        discountId: discount.id, 
+        productsCount: discountProducts.length 
+      });
+    } catch (error) {
+      logger.warn('Failed to fetch discount products', { 
+        discountId: discount.id, 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+    }
+
     return json({
       discount,
       discountData,
+      discountProducts,
       discountId
     });
 
@@ -91,7 +111,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
 export default function DiscountDetailPage() {
   try {
-    const { discount, discountData, discountId } = useLoaderData<typeof loader>();
+    const { discount, discountData, discountProducts, discountId } = useLoaderData<typeof loader>();
     
     
     if (!discount) {
@@ -227,6 +247,54 @@ export default function DiscountDetailPage() {
                     </BlockStack>
                   )}
                 </BlockStack>
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+
+          {/* Products Section */}
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="400">
+                <InlineStack align="space-between">
+                  <Text as="h2" variant="headingMd">
+                    Associated Products
+                  </Text>
+                  <Badge tone="info">
+                    {`${discountProducts.length} product${discountProducts.length !== 1 ? 's' : ''}`}
+                  </Badge>
+                </InlineStack>
+
+                {discountProducts.length > 0 ? (
+                  <DataTable
+                    columnContentTypes={[
+                      'text',
+                      'text', 
+                      'text',
+                      'text',
+                      'text'
+                    ]}
+                    headings={[
+                      'Product Title',
+                      'Shopify ID',
+                      'Status',
+                      'Relationship Status',
+                      'Relationship Created'
+                    ]}
+                    rows={discountProducts.map((productDiscount: any) => [
+                      productDiscount.product?.title || 'Unknown Product',
+                      productDiscount.product?.shopifyId || 'N/A',
+                      productDiscount.product?.status || 'N/A',
+                      productDiscount.isActive ? 'Active' : 'Inactive',
+                      new Date(productDiscount.createdAt).toLocaleString()
+                    ])}
+                  />
+                ) : (
+                  <Box padding="400">
+                    <Text as="p" variant="bodyMd" tone="subdued" alignment="center">
+                      No products are currently associated with this discount.
+                    </Text>
+                  </Box>
+                )}
               </BlockStack>
             </Card>
           </Layout.Section>

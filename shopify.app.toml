@@ -2,7 +2,7 @@
 
 client_id = "1e230754459dc2aec3bc6f7d355989bd"
 name = "discount-remix-akash"
-application_url = "https://excluded-promoting-importantly-approve.trycloudflare.com"
+application_url = "https://paper-managing-where-barcelona.trycloudflare.com"
 embedded = true
 handle = "discount-remix-akash"
 
@@ -48,7 +48,7 @@ api_version = "2025-07"
 scopes = "write_products,read_discounts,read_metaobjects,write_metaobjects"
 
 [auth]
-redirect_urls = ["https://excluded-promoting-importantly-approve.trycloudflare.com/auth/callback", "https://excluded-promoting-importantly-approve.trycloudflare.com/auth/shopify/callback", "https://excluded-promoting-importantly-approve.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://paper-managing-where-barcelona.trycloudflare.com/auth/callback", "https://paper-managing-where-barcelona.trycloudflare.com/auth/shopify/callback", "https://paper-managing-where-barcelona.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false

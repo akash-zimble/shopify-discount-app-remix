@@ -1,44 +1,25 @@
-{"logger":"cron.discount-cleanup","ts":"2025-09-15T08:11:58.271Z","message":"Starting discount cleanup cron job"}
-{"logger":"cron.discount-cleanup","ts":"2025-09-15T08:11:58.275Z","message":"Found 1 expired discounts"}
-{"logger":"cron.discount-cleanup","ts":"2025-09-15T08:11:58.275Z","message":"Processing expired discounts across 1 shops"}
-{"logger":"cron.discount-cleanup","ts":"2025-09-15T08:11:58.275Z","message":"Processing 1 expired discounts for shop: discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"cron.discount-cleanup","ts":"2025-09-15T08:11:58.286Z","message":"Cleaning up expired discount 1276832317618 from product metafields and relationships for shop: discount-metafield-remix-akash-test.myshopify.com..."}
-{"logger":"cron.discount-cleanup","ts":"2025-09-15T08:11:58.286Z","message":"Deactivated expired discount: 20per (1276832317618) for shop: discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"cron-cleanup-discount-metafield-remix-akash-test.myshopify.com","ts":"2025-09-15T08:11:58.290Z","message":"Found ProductDiscount relationships for discount","discountId":"1276832317618","discountRuleId":7,"relationshipsCount":3}
-{"logger":"cron-cleanup-discount-metafield-remix-akash-test.myshopify.com","ts":"2025-09-15T08:11:58.298Z","message":"Converted ProductDiscount relationships to Shopify product IDs","discountId":"1276832317618","relationshipsCount":3,"shopifyProductIdsCount":3,"shopifyProductIds":["gid://shopify/Product/8579006759090","gid://shopify/Product/8579006628018","gid://shopify/Product/8579006464178"]}
-{"logger":"cron-cleanup-discount-metafield-remix-akash-test.myshopify.com","ts":"2025-09-15T08:11:59.326Z","message":"Removed discount from product metafield","productId":"gid://shopify/Product/8579006759090","discountId":"1276832317618","remainingDiscounts":1}
-{"logger":"cron-cleanup-discount-metafield-remix-akash-test.myshopify.com","ts":"2025-09-15T08:12:00.745Z","message":"Removed discount from product metafield","productId":"gid://shopify/Product/8579006628018","discountId":"1276832317618","remainingDiscounts":1}
-{"logger":"webhook.products.updated","ts":"2025-09-15T08:12:01.791Z","message":"Received product webhook","topic":"PRODUCTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"webhook.products.updated","ts":"2025-09-15T08:12:01.791Z","message":"Processing product update webhook","productId":8579006759090,"shopifyId":"8579006759090","title":"The Collection Snowboard: Liquid"}
-{"logger":"cron-cleanup-discount-metafield-remix-akash-test.myshopify.com","ts":"2025-09-15T08:12:02.205Z","message":"Removed discount from product metafield","productId":"gid://shopify/Product/8579006464178","discountId":"1276832317618","remainingDiscounts":1}
-{"logger":"webhook.products.updated","ts":"2025-09-15T08:12:02.422Z","message":"Synced product from Shopify","shopifyId":"8579006759090","saved":true}
-{"logger":"webhook.products.updated","ts":"2025-09-15T08:12:02.427Z","message":"Product updated and synced successfully","shopifyId":"8579006759090","title":"The Collection Snowboard: Liquid","shop":"discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"webhook.products.updated","ts":"2025-09-15T08:12:02.427Z","message":"Processed product updated","id":119,"title":"The Collection Snowboard: Liquid","shopifyId":"8579006759090","deleted":false,"shop":"discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"webhook.products.updated","ts":"2025-09-15T08:12:02.528Z","message":"Received product webhook","topic":"PRODUCTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"webhook.products.updated","ts":"2025-09-15T08:12:02.528Z","message":"Processing product update webhook","productId":8579006628018,"shopifyId":"8579006628018","title":"The Collection Snowboard: Oxygen"}
-{"logger":"cron-cleanup-discount-metafield-remix-akash-test.myshopify.com","ts":"2025-09-15T08:12:02.706Z","message":"Bulk discount removal completed","totalProcessed":3,"successCount":3,"failureCount":0,"discountId":"1276832317618"}
-{"logger":"cron-cleanup-discount-metafield-remix-akash-test.myshopify.com","ts":"2025-09-15T08:12:02.714Z","message":"Deactivating bulk product-discount relationships","count":3,"shop":"discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"cron-cleanup-discount-metafield-remix-akash-test.myshopify.com","ts":"2025-09-15T08:12:02.745Z","message":"Bulk relationship deactivation completed","deactivated":3,"skipped":0,"errors":0}
-{"logger":"cron-cleanup-discount-metafield-remix-akash-test.myshopify.com","ts":"2025-09-15T08:12:02.745Z","message":"Deactivated ProductDiscount relationships","discountId":"1276832317618","discountRuleId":7,"deactivated":3,"skipped":0,"errors":0}
-{"logger":"cron-cleanup-discount-metafield-remix-akash-test.myshopify.com","ts":"2025-09-15T08:12:02.745Z","message":"Removed discount from products and relationships","removed":3,"attempted":3,"discountId":"1276832317618","relationshipsFound":3,"productsProcessed":3}
-{"logger":"cron.discount-cleanup","ts":"2025-09-15T08:12:02.759Z","message":"Successfully cleaned up expired discount 1276832317618 from product metafields and relationships for shop: discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"cron.discount-cleanup","ts":"2025-09-15T08:12:02.759Z","message":"Completed processing shop: discount-metafield-remix-akash-test.myshopify.com","processed":1,"deactivated":1,"metafieldCleanup":1}
-{"logger":"cron.discount-cleanup","ts":"2025-09-15T08:12:02.759Z","message":"Discount cleanup completed","totalFound":1,"deactivated":1,"metafieldCleanupCount":1,"shopsProcessed":1}
-{"logger":"webhook.products.updated","ts":"2025-09-15T08:12:02.989Z","message":"Synced product from Shopify","shopifyId":"8579006628018","saved":true}
-{"logger":"webhook.products.updated","ts":"2025-09-15T08:12:02.993Z","message":"Processed product updated","id":115,"title":"The Collection Snowboard: Oxygen","shopifyId":"8579006628018","deleted":false,"shop":"discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"webhook.products.updated","ts":"2025-09-15T08:12:02.993Z","message":"Product updated and synced successfully","shopifyId":"8579006628018","title":"The Collection Snowboard: Oxygen","shop":"discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"webhook.products.updated","ts":"2025-09-15T08:12:03.795Z","message":"Received product webhook","topic":"PRODUCTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"webhook.products.updated","ts":"2025-09-15T08:12:03.795Z","message":"Processing product update webhook","productId":8579006464178,"shopifyId":"8579006464178","title":"The Collection Snowboard: Hydrogen"}
-{"logger":"webhook.products.updated","ts":"2025-09-15T08:12:04.252Z","message":"Synced product from Shopify","shopifyId":"8579006464178","saved":true}
-{"logger":"webhook.products.updated","ts":"2025-09-15T08:12:04.256Z","message":"Product updated and synced successfully","shopifyId":"8579006464178","title":"The Collection Snowboard: Hydrogen","shop":"discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"webhook.products.updated","ts":"2025-09-15T08:12:04.256Z","message":"Processed product updated","id":110,"title":"The Collection Snowboard: Hydrogen","shopifyId":"8579006464178","deleted":false,"shop":"discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-15T08:15:10.779Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-15T08:15:11.395Z","message":"Discount updated but not ACTIVE - treating as removal","discountId":"1276832317618","status":"EXPIRED"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-15T08:15:11.411Z","message":"Found ProductDiscount relationships for discount","discountId":"1276832317618","discountRuleId":7,"relationshipsCount":3}
-{"logger":"webhook.discounts.updated","ts":"2025-09-15T08:15:11.418Z","message":"Converted ProductDiscount relationships to Shopify product IDs","discountId":"1276832317618","relationshipsCount":3,"shopifyProductIdsCount":3,"shopifyProductIds":["gid://shopify/Product/8579006759090","gid://shopify/Product/8579006628018","gid://shopify/Product/8579006464178"]}
-{"logger":"webhook.discounts.updated","ts":"2025-09-15T08:15:14.340Z","message":"Bulk discount removal completed","totalProcessed":3,"successCount":3,"failureCount":0,"discountId":"1276832317618"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-15T08:15:14.347Z","message":"Deactivating bulk product-discount relationships","count":3,"shop":"discount-metafield-remix-akash-test.myshopify.com"}
-{"logger":"webhook.discounts.updated","ts":"2025-09-15T08:15:14.400Z","message":"Bulk relationship deactivation completed","deactivated":3,"skipped":0,"errors":0}
-{"logger":"webhook.discounts.updated","ts":"2025-09-15T08:15:14.400Z","message":"Deactivated ProductDiscount relationships","discountId":"1276832317618","discountRuleId":7,"deactivated":3,"skipped":0,"errors":0}
-{"logger":"webhook.discounts.updated","ts":"2025-09-15T08:15:14.400Z","message":"Removed discount from products and relationships","removed":3,"attempted":3,"discountId":"1276832317618","relationshipsFound":3,"productsProcessed":3}
-{"logger":"webhook.discounts.updated","ts":"2025-09-15T08:15:14.400Z","message":"Processed discount updated","id":"1276832317618","title":"20per","type":"automatic","status":"EXPIRED","code":"N/A (Automatic)","value":"20%","deleted":false,"shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"discount-detail","ts":"2025-09-15T08:39:32.743Z","message":"Fetched discount products","discountId":6,"productsCount":3}
+{"logger":"discount-detail","ts":"2025-09-15T08:40:00.140Z","message":"Fetched discount products","discountId":6,"productsCount":3}
+{"logger":"discount-detail","ts":"2025-09-15T08:40:00.289Z","message":"Fetched discount products","discountId":6,"productsCount":3}
+{"logger":"discount-detail","ts":"2025-09-15T08:40:07.778Z","message":"Fetched discount products","discountId":6,"productsCount":3}
+{"logger":"discount-detail","ts":"2025-09-15T08:40:08.063Z","message":"Fetched discount products","discountId":6,"productsCount":3}
+{"logger":"discount-detail","ts":"2025-09-15T08:40:13.539Z","message":"Fetched discount products","discountId":6,"productsCount":3}
+{"logger":"discount-detail","ts":"2025-09-15T08:40:30.429Z","message":"Fetched discount products","discountId":6,"productsCount":3}
+{"logger":"discount-detail","ts":"2025-09-15T08:40:51.715Z","message":"Fetched discount products","discountId":6,"productsCount":3}
+{"logger":"discount-detail","ts":"2025-09-15T08:40:52.068Z","message":"Fetched discount products","discountId":6,"productsCount":3}
+{"logger":"discount-detail","ts":"2025-09-15T08:40:53.222Z","message":"Fetched discount products","discountId":6,"productsCount":3}
+{"logger":"discount-detail","ts":"2025-09-15T08:40:53.639Z","message":"Fetched discount products","discountId":6,"productsCount":3}
+{"logger":"discount-detail","ts":"2025-09-15T08:41:03.502Z","message":"Fetched discount products","discountId":6,"productsCount":3}
+{"logger":"discount-detail","ts":"2025-09-15T08:41:03.988Z","message":"Fetched discount products","discountId":6,"productsCount":3}
+{"logger":"discount-detail","ts":"2025-09-15T08:41:07.137Z","message":"Fetched discount products","discountId":6,"productsCount":3}
+{"logger":"discount-detail","ts":"2025-09-15T08:41:08.404Z","message":"Fetched discount products","discountId":6,"productsCount":3}
+{"logger":"webhook.discounts.updated","ts":"2025-09-15T09:10:15.949Z","message":"Received webhook","topic":"DISCOUNTS_UPDATE","shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-15T09:10:16.763Z","message":"Discount updated but not ACTIVE - treating as removal","discountId":"1276832317618","status":"EXPIRED"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-15T09:10:16.779Z","message":"Found ProductDiscount relationships for discount","discountId":"1276832317618","discountRuleId":7,"relationshipsCount":3}
+{"logger":"webhook.discounts.updated","ts":"2025-09-15T09:10:16.785Z","message":"Converted ProductDiscount relationships to Shopify product IDs","discountId":"1276832317618","relationshipsCount":3,"shopifyProductIdsCount":3,"shopifyProductIds":["gid://shopify/Product/8579006759090","gid://shopify/Product/8579006628018","gid://shopify/Product/8579006464178"]}
+{"logger":"webhook.discounts.updated","ts":"2025-09-15T09:10:19.645Z","message":"Bulk discount removal completed","totalProcessed":3,"successCount":3,"failureCount":0,"discountId":"1276832317618"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-15T09:10:19.651Z","message":"Deactivating bulk product-discount relationships","count":3,"shop":"discount-metafield-remix-akash-test.myshopify.com"}
+{"logger":"webhook.discounts.updated","ts":"2025-09-15T09:10:19.687Z","message":"Bulk relationship deactivation completed","deactivated":3,"skipped":0,"errors":0}
+{"logger":"webhook.discounts.updated","ts":"2025-09-15T09:10:19.687Z","message":"Deactivated ProductDiscount relationships","discountId":"1276832317618","discountRuleId":7,"deactivated":3,"skipped":0,"errors":0}
+{"logger":"webhook.discounts.updated","ts":"2025-09-15T09:10:19.687Z","message":"Removed discount from products and relationships","removed":3,"attempted":3,"discountId":"1276832317618","relationshipsFound":3,"productsProcessed":3}
+{"logger":"webhook.discounts.updated","ts":"2025-09-15T09:10:19.687Z","message":"Processed discount updated","id":"1276832317618","title":"20per","type":"automatic","status":"EXPIRED","code":"N/A (Automatic)","value":"20%","deleted":false,"shop":"discount-metafield-remix-akash-test.myshopify.com"}
