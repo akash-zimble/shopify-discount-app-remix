@@ -50,6 +50,11 @@ export interface IDiscountService {
   getDiscountFromShopify(discountId: string): Promise<ExtractedDiscountData | null>;
   
   // NEW: Relationship-aware methods
+  
+  /**
+   * Remove discount from product metafields (only products with ProductDiscount relationships)
+   */
+  removeFromProductMetafields(existingRule: any, discountId: string): Promise<void>;
 }
 
 /**
@@ -81,10 +86,7 @@ export interface IProductMetafieldService {
    */
   removeDiscountFromMultipleProducts(productIds: string[], discountId: string): Promise<BulkUpdateResult>;
   
-  /**
-   * Remove discount from product metafields (only products with ProductDiscount relationships)
-   */
-  removeFromProductMetafields(existingRule: any, discountId: string): Promise<void>;
+
 }
 
 /**

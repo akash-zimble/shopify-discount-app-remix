@@ -35,42 +35,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     logger.info("Starting discount cleanup cron job");
 
-    // Get the first available session to create admin client
-    const session = await prisma.session.findFirst({
-      orderBy: { expires: 'desc' }
-    });
-
-
-    if (!session) {
-      logger.error("No valid session found for cron job");
-      throw new Error("No valid Shopify session found");
-    }
-
-    // Create admin client for the cron job
-    const adminClient = {
-      graphql: async (query: string, options: { variables?: Record<string, any> } = {}) => {
-        const url = `https://${session.shop}/admin/api/2025-07/graphql.json`;
-        
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': session.accessToken,
-          },
-          body: JSON.stringify({
-            query,
-            variables: options.variables || {},
-          }),
-        });
-
-        return response;
-      }
-    };
-
-    // Create service stack for metafield operations
-    const { targetingService, metafieldService } = createDiscountServiceStack(adminClient, 'cron-cleanup');
-
-    // Find expired discounts
+    // Find expired discounts grouped by shop
     const expiredDiscounts = await errorHandler.withErrorHandling(
       () => prisma.discountMetafieldRule.findMany({
         where: {
@@ -91,95 +56,198 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         processed: 0,
         expired: [],
         deactivatedCount: 0,
+        shopsProcessed: 0,
       }, "No expired discounts found"));
     }
 
-    let deactivatedCount = 0;
-    let metafieldCleanupCount = 0;
-    const expiredDiscountData = [];
+    // Group discounts by shop for proper session mapping
+    const discountsByShop = expiredDiscounts.reduce((acc, discount) => {
+      if (!acc[discount.shop]) {
+        acc[discount.shop] = [];
+      }
+      acc[discount.shop].push(discount);
+      return acc;
+    }, {} as Record<string, typeof expiredDiscounts>);
 
-    // Process each expired discount
-    for (const discount of expiredDiscounts) {
-      try {
-        // Deactivate the discount
-        await errorHandler.withErrorHandling(
-          () => prisma.discountMetafieldRule.updateMany({
-            where: { discountId: discount.discountId },
-            data: {
-              isActive: false,
-              status: "EXPIRED",
-              lastRan: new Date(),
-              updatedAt: new Date(),
-            },
-          }),
-          { scope: "cron.deactivateDiscount", discountId: discount.discountId }
-        );
+    logger.info(`Processing expired discounts across ${Object.keys(discountsByShop).length} shops`);
 
-        deactivatedCount++;
-        expiredDiscountData.push({
-          id: discount.discountId,
-          title: discount.discountTitle,
-          endDate: discount.endDate,
-        });
+    let totalDeactivatedCount = 0;
+    let totalMetafieldCleanupCount = 0;
+    const allExpiredDiscountData = [];
+    const shopResults = [];
 
-        logger.info(`Deactivated expired discount: ${discount.discountTitle} (${discount.discountId})`);
+    // Process each shop independently
+    for (const [shop, shopDiscounts] of Object.entries(discountsByShop)) {
+      logger.info(`Processing ${shopDiscounts.length} expired discounts for shop: ${shop}`);
+      
+      // Get session for this specific shop
+      const session = await errorHandler.withErrorHandling(
+        () => prisma.session.findFirst({
+          where: { shop },
+          orderBy: { expires: 'desc' }
+        }),
+        { scope: "cron.getShopSession", shop }
+      );
 
-        // Remove discount from product metafields
-        try {
-          logger.info(`Cleaning up expired discount ${discount.discountId} from product metafields...`);
-          
-          const allProductIds = await errorHandler.withErrorHandling(
-            () => targetingService.getAllProductIds(),
-            { scope: 'cron.getAllProductIds', discountId: discount.discountId }
-          );
-
-          const metafieldResult = await errorHandler.withErrorHandling(
-            () => metafieldService.removeDiscountFromMultipleProducts(allProductIds, discount.discountId),
-            { scope: 'cron.removeMetafields', discountId: discount.discountId }
-          );
-
-          // Update the database with products count
+      if (!session) {
+        logger.error(`No valid session found for shop: ${shop}`);
+        // Still deactivate discounts in database even without session
+        for (const discount of shopDiscounts) {
           await errorHandler.withErrorHandling(
             () => prisma.discountMetafieldRule.updateMany({
-              where: { discountId: discount.discountId },
-              data: { productsCount: 0 },
+              where: { discountId: discount.discountId, shop: discount.shop },
+              data: {
+                isActive: false,
+                status: "EXPIRED",
+                lastRan: new Date(),
+                updatedAt: new Date(),
+              },
             }),
-            { scope: 'cron.updateProductsCount', discountId: discount.discountId }
+            { scope: "cron.deactivateDiscountNoSession", discountId: discount.discountId, shop }
+          );
+          totalDeactivatedCount++;
+          allExpiredDiscountData.push({
+            id: discount.discountId,
+            title: discount.discountTitle,
+            endDate: discount.endDate,
+            shop: discount.shop,
+          });
+        }
+        continue;
+      }
+
+      // Create admin client for this specific shop
+      const adminClient = {
+        graphql: async (query: string, options: { variables?: Record<string, any> } = {}) => {
+          const url = `https://${session.shop}/admin/api/2025-07/graphql.json`;
+          
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Shopify-Access-Token': session.accessToken,
+            },
+            body: JSON.stringify({
+              query,
+              variables: options.variables || {},
+            }),
+          });
+
+          return response;
+        }
+      };
+
+      // Create service stack for this shop's operations
+      const { discountService, targetingService, metafieldService } = createDiscountServiceStack(adminClient, `cron-cleanup-${shop}`, shop);
+
+      let shopDeactivatedCount = 0;
+      let shopMetafieldCleanupCount = 0;
+      const shopExpiredDiscountData = [];
+
+      // Process each expired discount for this shop
+      for (const discount of shopDiscounts) {
+        try {
+          // Deactivate the discount
+          await errorHandler.withErrorHandling(
+            () => prisma.discountMetafieldRule.updateMany({
+              where: { discountId: discount.discountId, shop: discount.shop },
+              data: {
+                isActive: false,
+                status: "EXPIRED",
+                lastRan: new Date(),
+                updatedAt: new Date(),
+              },
+            }),
+            { scope: "cron.deactivateDiscount", discountId: discount.discountId, shop }
           );
 
-          metafieldCleanupCount += metafieldResult.successCount;
-          logger.info(`Removed expired discount ${discount.discountId} from ${metafieldResult.successCount} product metafields`);
+          shopDeactivatedCount++;
+          totalDeactivatedCount++;
+          shopExpiredDiscountData.push({
+            id: discount.discountId,
+            title: discount.discountTitle,
+            endDate: discount.endDate,
+            shop: discount.shop,
+          });
+          allExpiredDiscountData.push(shopExpiredDiscountData[shopExpiredDiscountData.length - 1]);
 
-        } catch (metafieldError) {
-          logger.error("Failed to clean up metafields for expired discount", {
+          logger.info(`Deactivated expired discount: ${discount.discountTitle} (${discount.discountId}) for shop: ${shop}`);
+
+          // Remove discount from product metafields and ProductDiscount relationships
+          try {
+            logger.info(`Cleaning up expired discount ${discount.discountId} from product metafields and relationships for shop: ${shop}...`);
+            
+            // Use the discount service method that properly handles both metafields and ProductDiscount relationships
+            await errorHandler.withErrorHandling(
+              () => discountService.removeFromProductMetafields(discount as any, discount.discountId),
+              { scope: 'cron.removeFromProductMetafields', discountId: discount.discountId, shop }
+            );
+
+            // Update the database with products count
+            await errorHandler.withErrorHandling(
+              () => prisma.discountMetafieldRule.updateMany({
+                where: { discountId: discount.discountId, shop: discount.shop },
+                data: { productsCount: 0 },
+              }),
+              { scope: 'cron.updateProductsCount', discountId: discount.discountId, shop }
+            );
+
+            // Note: The actual count is logged by the discount service
+            // We'll increment by 1 to indicate successful cleanup
+            shopMetafieldCleanupCount += 1;
+            totalMetafieldCleanupCount += 1;
+            logger.info(`Successfully cleaned up expired discount ${discount.discountId} from product metafields and relationships for shop: ${shop}`);
+
+          } catch (metafieldError) {
+            logger.error("Failed to clean up metafields and relationships for expired discount", {
+              discountId: discount.discountId,
+              discountTitle: discount.discountTitle,
+              shop,
+              error: metafieldError instanceof Error ? metafieldError.message : String(metafieldError),
+            });
+            // Continue processing other discounts even if metafield cleanup fails
+          }
+
+        } catch (error) {
+          logger.error("Failed to deactivate expired discount", {
             discountId: discount.discountId,
             discountTitle: discount.discountTitle,
-            error: metafieldError instanceof Error ? metafieldError.message : String(metafieldError),
+            shop,
+            error: error instanceof Error ? error.message : String(error),
           });
-          // Continue processing other discounts even if metafield cleanup fails
         }
-
-      } catch (error) {
-        logger.error("Failed to deactivate expired discount", {
-          discountId: discount.discountId,
-          discountTitle: discount.discountTitle,
-          error: error instanceof Error ? error.message : String(error),
-        });
       }
+
+      shopResults.push({
+        shop,
+        processed: shopDiscounts.length,
+        deactivated: shopDeactivatedCount,
+        metafieldCleanup: shopMetafieldCleanupCount,
+        discounts: shopExpiredDiscountData,
+      });
+
+      logger.info(`Completed processing shop: ${shop}`, {
+        processed: shopDiscounts.length,
+        deactivated: shopDeactivatedCount,
+        metafieldCleanup: shopMetafieldCleanupCount,
+      });
     }
 
     logger.info("Discount cleanup completed", {
       totalFound: expiredDiscounts.length,
-      deactivated: deactivatedCount,
-      metafieldCleanupCount,
+      deactivated: totalDeactivatedCount,
+      metafieldCleanupCount: totalMetafieldCleanupCount,
+      shopsProcessed: Object.keys(discountsByShop).length,
     });
 
     return json(errorHandler.createSuccessResponse({
       processed: expiredDiscounts.length,
-      expired: expiredDiscountData,
-      deactivatedCount,
-      metafieldCleanupCount,
-    }, `Processed ${expiredDiscounts.length} expired discounts, deactivated ${deactivatedCount}, cleaned ${metafieldCleanupCount} product metafields`));
+      expired: allExpiredDiscountData,
+      deactivatedCount: totalDeactivatedCount,
+      metafieldCleanupCount: totalMetafieldCleanupCount,
+      shopsProcessed: Object.keys(discountsByShop).length,
+      shopResults,
+    }, `Processed ${expiredDiscounts.length} expired discounts across ${Object.keys(discountsByShop).length} shops, deactivated ${totalDeactivatedCount}, cleaned ${totalMetafieldCleanupCount} product metafields`));
 
   } catch (error) {
     const appError = errorHandler.handleError(error as Error, {
