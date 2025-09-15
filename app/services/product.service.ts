@@ -404,7 +404,7 @@ export class ProductService implements IProductService {
                        shopifyProduct.images_count || 0;
     
     const tags = shopifyProduct.tags ? JSON.stringify(shopifyProduct.tags) : null;
-    const activeDiscounts = shopifyProduct.metafield?.value || null;
+    const activeDiscounts = shopifyProduct.metafield?.value || '[]';
 
     return {
       id: 0, // Will be set by database auto-increment
