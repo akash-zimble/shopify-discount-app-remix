@@ -28,7 +28,7 @@ CREATE TABLE `discount_metafield_rules` (
     `discountTitle` VARCHAR(191) NOT NULL,
     `metafieldNamespace` VARCHAR(191) NOT NULL,
     `metafieldKey` VARCHAR(191) NOT NULL,
-    `metafieldValue` VARCHAR(191) NOT NULL,
+    `metafieldValue` TEXT NOT NULL,
     `isActive` BOOLEAN NOT NULL DEFAULT true,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
@@ -57,8 +57,8 @@ CREATE TABLE `products` (
     `status` VARCHAR(191) NOT NULL DEFAULT 'ACTIVE',
     `variantsCount` INTEGER NOT NULL DEFAULT 0,
     `imagesCount` INTEGER NOT NULL DEFAULT 0,
-    `tags` VARCHAR(191) NULL,
-    `activeDiscounts` VARCHAR(191) NULL,
+    `tags` TEXT NULL,
+    `activeDiscounts` TEXT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
     `lastFetchedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -77,8 +77,8 @@ CREATE TABLE `product_discounts` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
-    UNIQUE INDEX `product_discounts_productId_discountId_key`(`productId`, `discountId`),
     INDEX `product_discounts_shop_isActive_idx`(`shop`, `isActive`),
+    UNIQUE INDEX `product_discounts_productId_discountId_key`(`productId`, `discountId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -87,7 +87,3 @@ ALTER TABLE `product_discounts` ADD CONSTRAINT `product_discounts_productId_fkey
 
 -- AddForeignKey
 ALTER TABLE `product_discounts` ADD CONSTRAINT `product_discounts_discountId_fkey` FOREIGN KEY (`discountId`) REFERENCES `discount_metafield_rules`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
-
-
-

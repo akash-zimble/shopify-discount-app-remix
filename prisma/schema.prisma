@@ -33,7 +33,7 @@ model DiscountMetafieldRule {
   discountTitle      String
   metafieldNamespace String
   metafieldKey       String
-  metafieldValue     String
+  metafieldValue     String    @db.Text
   isActive           Boolean           @default(true)
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
@@ -64,8 +64,8 @@ model Product {
   status            String    @default("ACTIVE")
   variantsCount     Int       @default(0)
   imagesCount       Int       @default(0)
-  tags              String?   // JSON array of tags
-  activeDiscounts   String?   // The active discounts metafield data (kept for backward compatibility)
+  tags              String?   @db.Text // JSON array of tags
+  activeDiscounts   String?   @db.Text // The active discounts metafield data (kept for backward compatibility)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   lastFetchedAt     DateTime  @default(now())
