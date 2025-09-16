@@ -1,0 +1,54 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "1e230754459dc2aec3bc6f7d355989bd"
+name = "discount-remix-akash"
+application_url = "https://paper-managing-where-barcelona.trycloudflare.com"
+embedded = true
+handle = "discount-remix-akash"
+
+[build]
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2025-07"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app/scopes_update"
+
+  [[webhooks.subscriptions]]
+  topics = [ "discounts/create" ]
+  uri = "/webhooks/discounts/created"
+
+  [[webhooks.subscriptions]]
+  topics = [ "discounts/update" ]
+  uri = "/webhooks/discounts/updated"
+
+  [[webhooks.subscriptions]]
+  topics = [ "discounts/delete" ]
+  uri = "/webhooks/discounts/deleted"
+
+  [[webhooks.subscriptions]]
+  topics = [ "products/create" ]
+  uri = "/webhooks/products/created"
+
+  [[webhooks.subscriptions]]
+  topics = [ "products/update" ]
+  uri = "/webhooks/products/updated"
+
+  [[webhooks.subscriptions]]
+  topics = [ "products/delete" ]
+  uri = "/webhooks/products/deleted"
+
+[access_scopes]
+scopes = "write_products,read_discounts,read_metaobjects,write_metaobjects"
+
+[auth]
+redirect_urls = ["https://paper-managing-where-barcelona.trycloudflare.com/auth/callback", "https://paper-managing-where-barcelona.trycloudflare.com/auth/shopify/callback", "https://paper-managing-where-barcelona.trycloudflare.com/api/auth/callback"]
+
+[pos]
+embedded = false

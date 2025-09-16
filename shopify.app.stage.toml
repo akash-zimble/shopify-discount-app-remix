@@ -1,0 +1,21 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "65dcb41221ef287bec7d16166362b316"
+name = "Discount Metafield App Stage"
+application_url = "https://1110b5ee5708.ngrok-free.app/"
+embedded = true
+
+[webhooks]
+api_version = "2025-07"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_discounts,write_discounts,read_products,write_products"
+optional_scopes = [ ]
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [ ]
+
+[build]
+automatically_update_urls_on_dev = false
