@@ -137,6 +137,7 @@ export interface DiscountTargeting {
   appliesToAllProducts: boolean;
   productIds: string[];
   collectionIds: string[];
+  notFound?: boolean; // Indicates if the discount couldn't be found with any node type
 }
 
 export interface ProductMetafieldUpdate {

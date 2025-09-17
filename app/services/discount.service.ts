@@ -330,6 +330,25 @@ export class DiscountService implements IDiscountService {
             continue;
           }
 
+          // Validate that we can get targeting information for this discount
+          // This prevents processing discounts that can't be properly queried
+          try {
+            const targeting = await this.targetingService.getDiscountTargeting(discount.id);
+            
+            // Check if this discount couldn't be found with any node type
+            if (targeting.notFound) {
+              this.logger.warn(`Skipping discount that cannot be queried: ${discount.title} (${normalizedId})`);
+              skippedCount++;
+              continue;
+            }
+          } catch (targetingError) {
+            this.logger.warn(`Skipping discount due to targeting validation failure: ${discount.title} (${normalizedId})`, {
+              error: targetingError instanceof Error ? targetingError.message : String(targetingError)
+            });
+            skippedCount++;
+            continue;
+          }
+
           // Create database record
           await this.discountRepository.create({
             discountId: normalizedId,

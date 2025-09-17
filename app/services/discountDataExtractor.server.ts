@@ -128,9 +128,17 @@ export class DiscountDataExtractor {
       } catch {}
     }
     
+    // Generate a better fallback title if none is provided
+    let title = discountDetails.title;
+    if (!title || title.trim() === "") {
+      const discountType = typename?.replace('Discount', '') || 'Unknown';
+      const valueInfo = valueAmount ? ` (${valueAmount})` : '';
+      title = `${discountType} Discount${valueInfo}`;
+    }
+
     return {
       id: "", // Will be set by ensureStableDiscountId
-      title: discountDetails.title || "Untitled Discount",
+      title: title,
       code: code,
       value: {
         ...value,
@@ -158,9 +166,17 @@ export class DiscountDataExtractor {
   static extractFromWebhookPayload(payload: any): ExtractedDiscountData {
     // Fallback extraction from minimal webhook data
     const rawId = payload.admin_graphql_api_id?.split('/').pop() || payload.id || "";
+    
+    // Generate a better fallback title if none is provided
+    let title = payload.title;
+    if (!title || title.trim() === "") {
+      const discountId = rawId ? ` (${rawId})` : '';
+      title = `Webhook Discount${discountId}`;
+    }
+    
     return {
       id: normalizeDiscountId(rawId),
-      title: payload.title || "Untitled Discount",
+      title: title,
       code: "", // Webhook doesn't provide codes
       value: {
         displayValue: "Unknown"

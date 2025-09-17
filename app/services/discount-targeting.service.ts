@@ -242,10 +242,11 @@ export class DiscountTargetingService implements IDiscountTargetingService {
       }
 
       this.logger.warn('Discount not found with any node type', { discountId, candidates });
-      return { appliesToAllProducts: false, productIds: [], collectionIds: [] };
+      // Return a special indicator that this discount couldn't be found
+      return { appliesToAllProducts: false, productIds: [], collectionIds: [], notFound: true };
     } catch (error) {
       this.logger.error(error as Error, { scope: 'DiscountTargetingService.getDiscountTargeting', discountId });
-      return { appliesToAllProducts: false, productIds: [], collectionIds: [] };
+      return { appliesToAllProducts: false, productIds: [], collectionIds: [], notFound: true };
     }
   }
 
